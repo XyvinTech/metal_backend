@@ -11,5 +11,6 @@ mtoRoute
   .delete(mtoController.deleteMto);
 
 mtoRoute.get("/list", mtoController.getMtos);
+mtoRoute.get("/download", mtoController.downloadMtoCsv);
 
 module.exports = mtoRoute;

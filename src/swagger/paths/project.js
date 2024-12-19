@@ -154,3 +154,30 @@
  *       500:
  *         description: Internal Server Error
  */
+
+/**
+ * @swagger
+ * /project/upload:
+ *   post:
+ *     summary: Upload an Excel file
+ *     description: Uploads an Excel file and saves its content to the database.
+ *     tags:
+ *       - Projects
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       201:
+ *         description: Excel file uploaded and data saved successfully
+ *       400:
+ *         description: No file uploaded or file is empty
+ *       500:
+ *         description: Internal Server Error
+ */

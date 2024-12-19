@@ -1,6 +1,8 @@
 const express = require("express");
 const projectController = require("../controllers/projectController");
 const projectRoute = express.Router();
+const multer = require('multer');
+const upload = multer({ dest: 'uploads/' });
 
 projectRoute.post("/", projectController.createProject);
 
@@ -11,5 +13,6 @@ projectRoute
   .delete(projectController.deleteProject);
 
 projectRoute.get("/list", projectController.getProjects);
+projectRoute.post("/upload", upload.single('file'), projectController.uploadExcelFile);
 
 module.exports = projectRoute;

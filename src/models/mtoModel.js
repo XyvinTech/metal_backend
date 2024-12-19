@@ -26,6 +26,10 @@ const mtoSchema = mongoose.Schema(
     balToIssue: { type: Number },
     consumedQty: { type: Number },
     balanceStock: { type: Number },
+    project: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Project",
+    },
   },
   {
     timestamps: true,
