@@ -45,7 +45,7 @@ exports.getMtos = async (req, res) => {
 
 exports.getMtoById = async (req, res) => {
   try {
-    const mto = await Mto.findById(req.params.id);
+    const mto = await Mto.find({project:req.params.id});
     if (!mto) {
       return responseHandler(res, 404, "MTO entry not found");
     }
