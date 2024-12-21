@@ -5,6 +5,7 @@ exports.createAdminSchema = Joi.object({
   email: Joi.string().required(),
   phone: Joi.string().required(),
   active: Joi.boolean(),
+  project: Joi.string().required(),
   password: Joi.string().required(),
 });
 
@@ -13,6 +14,7 @@ exports.updateAdminSchema = Joi.object({
   email: Joi.string(),
   phone: Joi.string(),
   active: Joi.boolean(),
+  project: Joi.string(),
 });
 
 
