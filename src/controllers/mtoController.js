@@ -1,10 +1,9 @@
 const Mto = require("../models/mtoModel");
 const responseHandler = require("../helpers/responseHandler");
 const validations = require("../validations");
-const { Parser } = require('json2csv');
-const fs = require('fs');
+const { Parser } = require("json2csv");
+const fs = require("fs");
 const Log = require("../models/logModel");
-
 
 exports.createMto = async (req, res) => {
   try {
@@ -45,11 +44,25 @@ exports.getMtos = async (req, res) => {
 
 exports.getMtoById = async (req, res) => {
   try {
-    const mto = await Mto.find({project:req.params.id});
+    const { page = 1, limit = 10 } = req.query;
+    const skipCount = 10 * (page - 1);
+
+    const mto = await Mto.find({ project: req.params.id })
+      .skip(skipCount)
+      .limit(limit)
+      .sort({ createdAt: -1, _id: 1 });
+    const totalCount = await Mto.countDocuments({ project: req.params.id });
+
     if (!mto) {
       return responseHandler(res, 404, "MTO entry not found");
     }
-    return responseHandler(res, 200, "MTO entry retrieved successfully", mto);
+    return responseHandler(
+      res,
+      200,
+      "MTO entry retrieved successfully",
+      mto,
+      totalCount
+    );
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
@@ -81,7 +94,7 @@ exports.updateMto = async (req, res) => {
       areaLineSheetIdent: findMto.areaLineSheetIdent,
       host: req.headers.host,
       agent: req.headers["user-agent"],
-    })
+    });
 
     const mto = await Mto.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -109,7 +122,6 @@ exports.deleteMto = async (req, res) => {
   }
 };
 
-
 exports.downloadMtoCsv = async (req, res) => {
   try {
     const mtos = await Mto.find();
@@ -118,11 +130,35 @@ exports.downloadMtoCsv = async (req, res) => {
       return responseHandler(res, 404, "No MTO data found");
     }
 
-    const fields = ["unit", "lineNo", "lineLocation", "areaLineSheetIdent", "area", "line", "sheet", "identCode", "uom", "size", "sizeTwo", "specCode", "shortCode", "cat", "shortDesc", "mtoRev", "sf", "scopeQty", "issuedQtyAss", "issuedDate", "balToIssue", "consumedQty", "balanceStock"]; 
+    const fields = [
+      "unit",
+      "lineNo",
+      "lineLocation",
+      "areaLineSheetIdent",
+      "area",
+      "line",
+      "sheet",
+      "identCode",
+      "uom",
+      "size",
+      "sizeTwo",
+      "specCode",
+      "shortCode",
+      "cat",
+      "shortDesc",
+      "mtoRev",
+      "sf",
+      "scopeQty",
+      "issuedQtyAss",
+      "issuedDate",
+      "balToIssue",
+      "consumedQty",
+      "balanceStock",
+    ];
     const json2csvParser = new Parser({ fields });
     const csv = json2csvParser.parse(mtos);
 
-    const downloadsDir = './downloads';
+    const downloadsDir = "./downloads";
     if (!fs.existsSync(downloadsDir)) {
       fs.mkdirSync(downloadsDir);
     }
@@ -130,7 +166,7 @@ exports.downloadMtoCsv = async (req, res) => {
     const filePath = `${downloadsDir}/mto_data_${Date.now()}.csv`;
     fs.writeFileSync(filePath, csv);
 
-    res.download(filePath, 'mto_data.csv', (err) => {
+    res.download(filePath, "mto_data.csv", (err) => {
       if (err) {
         return responseHandler(res, 500, `File Download Error: ${err.message}`);
       }
@@ -141,7 +177,6 @@ exports.downloadMtoCsv = async (req, res) => {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
- 
 
 exports.uploadExcelFile = async (req, res) => {
   try {
@@ -191,7 +226,11 @@ exports.uploadExcelFile = async (req, res) => {
 
     if (data.length <= 2) {
       fs.unlinkSync(filePath);
-      return responseHandler(res, 400, "Uploaded file is empty or has insufficient data");
+      return responseHandler(
+        res,
+        400,
+        "Uploaded file is empty or has insufficient data"
+      );
     }
 
     data = data.slice(2).map((record) => ({
@@ -220,7 +259,8 @@ exports.uploadExcelFile = async (req, res) => {
 
     for (const newRecord of data) {
       const oldRecord = existingRecords.find(
-        (existing) => existing.areaLineSheetIdent === newRecord.areaLineSheetIdent
+        (existing) =>
+          existing.areaLineSheetIdent === newRecord.areaLineSheetIdent
       );
 
       if (oldRecord) {
