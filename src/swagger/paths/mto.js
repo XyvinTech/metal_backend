@@ -221,3 +221,20 @@
  *       500:
  *         description: Internal Server Error
  */
+
+/**
+ * @swagger
+ * /mto/summery:
+ *   get:
+ *     summary: Download summer data as excel
+ *     description: Exports all MTO entries as a CSV file. 
+ *     tags:
+ *       - MTO
+ *     responses:
+ *       200:
+ *         description: CSV file downloaded successfully
+ *       404:
+ *         description: No MTO data found
+ *       500:
+ *         description: Internal Server Error
+ */
