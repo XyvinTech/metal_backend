@@ -5,6 +5,7 @@ const validations = require("../validations");
 const fs = require("fs");
 
 const xlsx = require("xlsx");
+const Log = require("../models/logModel");
 
 exports.createProject = async (req, res) => {
   try {
@@ -91,15 +92,21 @@ exports.deleteProject = async (req, res) => {
 };
 
 
-
 exports.uploadExcelFile = async (req, res) => {
   try {
     if (!req.file) {
       return responseHandler(res, 400, "No file uploaded");
     }
 
+    const { project } = req.body;
+
+    if (!project) {
+      fs.unlinkSync(req.file.path);
+      return responseHandler(res, 400, "Project ID is required");
+    }
+
     const filePath = req.file.path;
-    const workbook = xlsx.readFile(filePath, { cellDates: true }); 
+    const workbook = xlsx.readFile(filePath, { cellDates: true });
     const sheetName = workbook.SheetNames[0];
 
     let data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], {
@@ -131,40 +138,86 @@ exports.uploadExcelFile = async (req, res) => {
       defval: "",
     });
 
-    if (data.length <= 2) {  // Check after removing rows
+    if (data.length <= 2) {
       fs.unlinkSync(filePath);
       return responseHandler(res, 400, "Uploaded file is empty or has insufficient data");
     }
 
-    // Remove the first two rows
-    data = data.slice(2); 
-
-    data = data.map((record) => ({
+    data = data.slice(2).map((record) => ({
       ...record,
+      project,
       sheet: Number(record.sheet) || 0,
       size: Number(record.size) || 0,
       sizeTwo: Number(record.sizeTwo) || 0,
       scopeQty: Number(record.scopeQty) || 0,
       issuedQtyAss: Number(record.issuedQtyAss) || 0,
-      issuedDate:
-        record.issuedDate,
+      issuedDate: record.issuedDate,
       balToIssue: Number(record.balToIssue) || 0,
       consumedQty: Number(record.consumedQty) || 0,
       balanceStock: Number(record.balanceStock) || 0,
-    })); 
+    }));
 
-    const insertedRecords = await Mto.insertMany(data);
+    // Fetch existing records by areaLineSheetIdent
+    const existingRecords = await Mto.find({
+      areaLineSheetIdent: { $in: data.map((d) => d.areaLineSheetIdent) },
+      project,
+    });
+
+    // Prepare records for insertion and logging
+    const logs = [];
+    const recordsToInsert = [];
+
+    for (const newRecord of data) {
+      const oldRecord = existingRecords.find(
+        (existing) => existing.areaLineSheetIdent === newRecord.areaLineSheetIdent
+      );
+
+      if (oldRecord) {
+        // Log changes for updated records
+        logs.push({
+          admin: req.userId,
+          description: "Bulk update",
+          oldIssuedQtyAss: oldRecord.issuedQtyAss,
+          oldIssuedDate: oldRecord.issuedDate,
+          oldConsumedQty: oldRecord.consumedQty,
+          newIssuedQtyAss: newRecord.issuedQtyAss,
+          newIssuedDate: newRecord.issuedDate,
+          newConsumedQty: newRecord.consumedQty,
+          project: oldRecord.project,
+          areaLineSheetIdent: oldRecord.areaLineSheetIdent,
+          host: req.headers.host,
+          agent: req.headers["user-agent"],
+        });
+
+        // Update existing record in database
+        await Mto.findByIdAndUpdate(oldRecord._id, newRecord);
+      } else {
+        // New record to insert
+        recordsToInsert.push(newRecord);
+      }
+    }
+
+    // Insert new records
+    if (recordsToInsert.length > 0) {
+      await Mto.insertMany(recordsToInsert);
+    }
+
+    // Log the changes
+    if (logs.length > 0) {
+      await Log.insertMany(logs);
+    }
+
     fs.unlinkSync(filePath);
 
     return responseHandler(
       res,
       201,
-      "Excel file uploaded and data saved successfully",
-      insertedRecords
+      "Excel file uploaded and data saved/updated successfully",
+      { updated: logs.length, inserted: recordsToInsert.length }
     );
   } catch (error) {
     if (fs.existsSync(req.file?.path)) {
-      fs.unlinkSync(req.file.path);  // Ensure cleanup in case of an error
+      fs.unlinkSync(req.file.path);
     }
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }

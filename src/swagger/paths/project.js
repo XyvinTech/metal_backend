@@ -160,7 +160,7 @@
  * /project/upload:
  *   post:
  *     summary: Upload an Excel file
- *     description: Uploads an Excel file and saves its content to the database.
+ *     description: Uploads an Excel file, associates its content with a project ID, and saves the data to the database.
  *     tags:
  *       - Projects
  *     requestBody:
@@ -173,12 +173,85 @@
  *               file:
  *                 type: string
  *                 format: binary
+ *                 description: The Excel file to be uploaded.
+ *               project:
+ *                 type: string
+ *                 format: uuid
+ *                 description: The ID of the project to associate the data with.
+ *             required:
+ *               - file
+ *               - project
  *     responses:
  *       201:
- *         description: Excel file uploaded and data saved successfully
+ *         description: Excel file uploaded and data saved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Excel file uploaded and data saved successfully
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                         format: uuid
+ *                       project:
+ *                         type: string
+ *                         format: uuid
+ *                       unit:
+ *                         type: string
+ *                       lineNo:
+ *                         type: string
+ *                       lineLocation:
+ *                         type: string
+ *                       areaLineSheetIdent:
+ *                         type: string
+ *                       area:
+ *                         type: string
+ *                       line:
+ *                         type: string
+ *                       sheet:
+ *                         type: number
+ *                       identCode:
+ *                         type: string
+ *                       uom:
+ *                         type: string
+ *                       size:
+ *                         type: number
+ *                       sizeTwo:
+ *                         type: number
+ *                       specCode:
+ *                         type: string
+ *                       shortCode:
+ *                         type: string
+ *                       cat:
+ *                         type: string
+ *                       shortDesc:
+ *                         type: string
+ *                       mtoRev:
+ *                         type: string
+ *                       sf:
+ *                         type: string
+ *                       scopeQty:
+ *                         type: number
+ *                       issuedQtyAss:
+ *                         type: number
+ *                       issuedDate:
+ *                         type: string
+ *                         format: date-time
+ *                       balToIssue:
+ *                         type: number
+ *                       consumedQty:
+ *                         type: number
+ *                       balanceStock:
+ *                         type: number
  *       400:
- *         description: No file uploaded or file is empty
+ *         description: No file uploaded, project ID missing, or file contains insufficient data.
  *       500:
- *         description: Internal Server Error
+ *         description: Internal Server Error.
  */
-

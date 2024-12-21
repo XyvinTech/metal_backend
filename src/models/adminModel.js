@@ -3,6 +3,10 @@ const mongoose = require("mongoose");
 const adminSchema = mongoose.Schema(
   {
     name: { type: String },
+    superAdmin: {
+      type: Boolean,
+      default: false,
+    },
     project: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Project",

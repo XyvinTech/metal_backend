@@ -3,6 +3,7 @@ const responseHandler = require("../helpers/responseHandler");
 const validations = require("../validations");
 const { Parser } = require('json2csv');
 const fs = require('fs');
+const Log = require("../models/logModel");
 
 
 exports.createMto = async (req, res) => {
@@ -62,6 +63,25 @@ exports.updateMto = async (req, res) => {
     if (error) {
       return responseHandler(res, 400, `Invalid input: ${error.message}`);
     }
+
+    const findMto = await Mto.findById(req.params.id);
+    if (!findMto) {
+      return responseHandler(res, 404, "MTO entry not found");
+    }
+    await Log.create({
+      admin: req.userId,
+      description: "Single update",
+      oldIssuedQtyAss: findMto.issuedQtyAss,
+      oldIssuedDate: findMto.issuedDate,
+      oldConsumedQty: findMto.consumedQty,
+      newIssuedQtyAss: req.body.issuedQtyAss,
+      newIssuedDate: req.body.issuedDate,
+      newConsumedQty: req.body.consumedQty,
+      project: findMto.project,
+      areaLineSheetIdent: findMto.areaLineSheetIdent,
+      host: req.headers.host,
+      agent: req.headers["user-agent"],
+    })
 
     const mto = await Mto.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
