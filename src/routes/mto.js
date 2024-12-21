@@ -2,17 +2,20 @@ const express = require("express");
 const mtoController = require("../controllers/mtoController");
 const authVerify = require("../middlewares/authVerify");
 const mtoRoute = express.Router();
+const multer = require('multer');
+const upload = multer({ dest: 'uploads/' });
 
-// mtoRoute.use(authVerify);
+mtoRoute.use(authVerify);
 mtoRoute.post("/", mtoController.createMto);
 
 mtoRoute
   .route("/single/:id")
   .get(mtoController.getMtoById)
   .put(mtoController.updateMto)
-  .delete(mtoController.deleteMto);
+  // .delete(mtoController.deleteMto);
 
 mtoRoute.get("/list", mtoController.getMtos);
 mtoRoute.get("/download", mtoController.downloadMtoCsv);
+mtoRoute.post("/upload", upload.single('file'), mtoController.uploadExcelFile);
 
 module.exports = mtoRoute;

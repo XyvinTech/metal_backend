@@ -14,7 +14,7 @@ const adminSchema = mongoose.Schema(
     email: { type: String },
     phone: { type: String },
     password: { type: String },
-    active: {
+    status: {
       type: Boolean,
       default: true,
     },

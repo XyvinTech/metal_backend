@@ -34,6 +34,10 @@ exports.loginAdmin = async (req, res) => {
 
 exports.createAdmin = async (req, res) => {
   try {
+    if(req.user.suprerAdmin != true){
+      return responseHandler(res, 403, `You are not authorized to create admin`);
+      
+    }
     const { error } = validations.createAdminSchema.validate(req.body, {
       abortEarly: true,
     });
