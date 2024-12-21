@@ -89,6 +89,9 @@ exports.deleteProject = async (req, res) => {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
+
+
+
 exports.uploadExcelFile = async (req, res) => {
   try {
     if (!req.file) {
@@ -96,7 +99,7 @@ exports.uploadExcelFile = async (req, res) => {
     }
 
     const filePath = req.file.path;
-    const workbook = xlsx.readFile(filePath, { cellDates: true });  // Enable date parsing
+    const workbook = xlsx.readFile(filePath, { cellDates: true }); 
     const sheetName = workbook.SheetNames[0];
 
     let data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], {

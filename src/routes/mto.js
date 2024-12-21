@@ -1,7 +1,9 @@
 const express = require("express");
 const mtoController = require("../controllers/mtoController");
+const authVerify = require("../middlewares/authVerify");
 const mtoRoute = express.Router();
 
+// mtoRoute.use(authVerify);
 mtoRoute.post("/", mtoController.createMto);
 
 mtoRoute

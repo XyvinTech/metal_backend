@@ -62,29 +62,9 @@ exports.createMtoSchema = Joi.object({
 });
 
 exports.updateMtoSchema = Joi.object({
-  unit: Joi.string(),
-  lineNo: Joi.string(),
-  lineLocation: Joi.string(),
-  areaLineSheetIdent: Joi.string(),
-  area: Joi.string(),
-  line: Joi.string(),
-  sheet: Joi.number(),
-  identCode: Joi.string(),
-  uom: Joi.string(),
-  size: Joi.number(),
-  sizeTwo: Joi.number(),
-  specCode: Joi.string(),
-  shortCode: Joi.string(),
-  cat: Joi.string(),
-  shortDesc: Joi.string(),
-  mtoRev: Joi.string(),
-  sf: Joi.string(),
-  scopeQty: Joi.number(),
   issuedQtyAss: Joi.number(),
   issuedDate: Joi.date(),
-  balToIssue: Joi.number(),
-  consumedQty: Joi.number(),
-  balanceStock: Joi.number(),
+  consumedQty: Joi.number()
 });
 
 

@@ -160,60 +160,6 @@
  *           schema:
  *             type: object
  *             properties:
- *               unit:
- *                 type: string
- *                 example: "Unit A Updated"
- *               lineNo:
- *                 type: string
- *                 example: "LN001 Updated"
- *               lineLocation:
- *                 type: string
- *                 example: "Location B"
- *               areaLineSheetIdent:
- *                 type: string
- *                 example: "ALS002"
- *               area:
- *                 type: string
- *                 example: "Area B"
- *               line:
- *                 type: string
- *                 example: "Line B"
- *               sheet:
- *                 type: number
- *                 example: 2
- *               identCode:
- *                 type: string
- *                 example: "IC002"
- *               uom:
- *                 type: string
- *                 example: "LBS"
- *               size:
- *                 type: number
- *                 example: 120
- *               sizeTwo:
- *                 type: number
- *                 example: 170
- *               specCode:
- *                 type: string
- *                 example: "SPEC002"
- *               shortCode:
- *                 type: string
- *                 example: "SC002"
- *               cat:
- *                 type: string
- *                 example: "Category B"
- *               shortDesc:
- *                 type: string
- *                 example: "Updated description of MTO"
- *               mtoRev:
- *                 type: string
- *                 example: "Rev B"
- *               sf:
- *                 type: string
- *                 example: "SF002"
- *               scopeQty:
- *                 type: number
- *                 example: 600
  *               issuedQtyAss:
  *                 type: number
  *                 example: 350
@@ -221,15 +167,9 @@
  *                 type: string
  *                 format: date
  *                 example: "2024-12-19"
- *               balToIssue:
- *                 type: number
- *                 example: 250
  *               consumedQty:
  *                 type: number
  *                 example: 150
- *               balanceStock:
- *                 type: number
- *                 example: 200
  *     responses:
  *       200:
  *         description: MTO entry updated successfully
