@@ -10,7 +10,7 @@ const Log = require("../models/logModel");
 exports.createProject = async (req, res) => {
 
   try {
-    if(req.user.suprerAdmin != true){
+    if(req.user.superAdmin != true){
       return responseHandler(res, 403, `You are not authorized to create admin`);
       
     }
