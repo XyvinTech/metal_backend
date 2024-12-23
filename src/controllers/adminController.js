@@ -233,15 +233,26 @@ exports.getAllLogs = async (req, res) => {
   }
 };
 
+
+
 exports.getAlerts = async (req, res) => {
   try {
-    const alerts = await Alert.find()
+    const { page = 1, limit = 10 } = req.query;
+    const skipCount = (page - 1) * limit;
+
+   
+    const alerts = await Alert.find({ project: req.params.id })
+      .skip(skipCount)
+      .sort({ createdAt: -1, _id: 1 })
       .populate("project", "name")
       .populate("mto", "identCode");
+
+  
 
     if (!alerts || alerts.length === 0) {
       return responseHandler(res, 404, "No alerts found");
     }
+
 
     return responseHandler(res, 200, "Alerts fetched successfully", alerts);
   } catch (error) {

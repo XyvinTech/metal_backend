@@ -5,7 +5,7 @@ const mtoRoute = express.Router();
 const multer = require('multer');
 const upload = multer({ dest: 'uploads/' });
 
-mtoRoute.use(authVerify);
+// mtoRoute.use(authVerify);
 mtoRoute.post("/", mtoController.createMto);
 
 mtoRoute
@@ -16,9 +16,9 @@ mtoRoute
 
 mtoRoute.get("/list", mtoController.getMtos);
 mtoRoute.get("/download", mtoController.downloadMtoCsv);
-mtoRoute.get("/summery", mtoController.fetchSummary);
+mtoRoute.get("/summery/:id", mtoController.fetchSummaryByProjectId);
 
-mtoRoute.get("/summerydownload", mtoController.downloadSummery);
+mtoRoute.get("/summery/download/:id", mtoController.downloadSummaryByProjectId);
 
 mtoRoute.post("/upload", upload.single('file'), mtoController.bulkUpload);
 

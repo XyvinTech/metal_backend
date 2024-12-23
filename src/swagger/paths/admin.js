@@ -340,17 +340,91 @@
 
 /**
  * @swagger
- * /admin/alert:
+ * /admin/alert/{id}:
  *   get:
- *     summary: Fetch all alerts
- *     description: Retrieves a list of all alerts, including associated projects and MTO data.
+ *     summary: Fetch alerts for a specific project
+ *     description: Retrieves a paginated list of alerts for the specified project, including associated project name and MTO ident codes.
  *     tags:
  *       - Admin
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the project for which alerts are being fetched.
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         required: false
+ *         description: Page number for pagination.
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         required: false
+ *         description: Number of alerts to retrieve per page.
  *     responses:
  *       200:
- *         description: Alerts fetched successfully
+ *         description: Alerts fetched successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: integer
+ *                   example: 200
+ *                 message:
+ *                   type: string
+ *                   example: "Alerts fetched successfully"
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                         example: "642d6fbd9f1b1c2a6f45e21a"
+ *                       project:
+ *                         type: object
+ *                         properties:
+ *                           name:
+ *                             type: string
+ *                             example: "Project Alpha"
+ *                       mto:
+ *                         type: object
+ *                         properties:
+ *                           identCode:
+ *                             type: string
+ *                             example: "IC-12345"
  *       404:
- *         description: No alerts found
+ *         description: No alerts found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: integer
+ *                   example: 404
+ *                 message:
+ *                   type: string
+ *                   example: "No alerts found"
  *       500:
- *         description: Internal Server Error
+ *         description: Internal Server Error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: integer
+ *                   example: 500
+ *                 message:
+ *                   type: string
+ *                   example: "Internal Server Error: [error details]"
  */

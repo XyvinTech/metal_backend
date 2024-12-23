@@ -192,12 +192,57 @@ exports.downloadMtoCsv = async (req, res) => {
 };
 
 
-exports.downloadSummery = async (req, res) => {
+exports.fetchSummaryByProjectId = async (req, res) => {
   try {
-    const mtos = await Mto.find();
+    const { page = 1, limit = 10 } = req.query;
+    const skipCount = 10 * (page - 1);
+
+
+    const mto = await Mto.find({ project: req.params.id })
+      .skip(skipCount)
+      .limit(limit)
+      .sort({ createdAt: -1, _id: 1 });
+
+
+    if (!mto || mto.length === 0) {
+      return responseHandler(res, 404, "MTO entry not found");
+    }
+
+
+    const summary = mto.map((mtoItem) => ({
+      identCode: mtoItem.identCode,
+      uom: mtoItem.uom,
+      size: mtoItem.size,
+      sizeTwo: mtoItem.sizeTwo,
+      cat: mtoItem.cat,
+      shortDesc: mtoItem.shortDesc,
+      scopeQty: mtoItem.scopeQty,
+      issuedQtyAss: mtoItem.issuedQtyAss,
+      issuedDate: mtoItem.issuedDate,
+      consumedQty: mtoItem.consumedQty,
+      balanceStock: mtoItem.balanceStock,
+    }));
+
+
+    return responseHandler(
+      res,
+      200,
+      "MTO entry retrieved successfully",
+      summary
+    );
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
+  }
+};
+
+
+
+exports.downloadSummaryByProjectId = async (req, res) => {
+  try {
+    const mtos = await Mto.find({ project: req.params.id });
 
     if (!mtos || mtos.length === 0) {
-      return responseHandler(res, 404, "No MTO data found");
+      return responseHandler(res, 404, "No MTO data found for this project");
     }
 
     const fields = [
@@ -211,14 +256,14 @@ exports.downloadSummery = async (req, res) => {
       "issuedQtyAss",
       "issuedDate",
       "consumedQty",
-      "balanceStock"
+      "balanceStock",
     ];
     const json2csvParser = new Parser({ fields });
     const csv = json2csvParser.parse(mtos);
 
     const downloadsDir = "./downloads";
     if (!fs.existsSync(downloadsDir)) {
-      fs.mkdirSync(downloadsDir);
+      fs.mkdirSync(downloadsDir, { recursive: true }); 
     }
 
     const filePath = `${downloadsDir}/mto_data_${Date.now()}.csv`;
@@ -226,41 +271,18 @@ exports.downloadSummery = async (req, res) => {
 
     res.download(filePath, "mto_data.csv", (err) => {
       if (err) {
+        console.error(`File Download Error: ${err.message}`);
         return responseHandler(res, 500, `File Download Error: ${err.message}`);
       }
 
-      fs.unlinkSync(filePath);
+      fs.unlink(filePath, (unlinkErr) => {
+        if (unlinkErr) {
+          console.error(`File Deletion Error: ${unlinkErr.message}`);
+        }
+      });
     });
   } catch (error) {
-    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
-  }
-};
-
-exports.fetchSummary = async (req, res) => {
-  try {
-    const mtos = await Mto.find();
-
-    if (!mtos || mtos.length === 0) {
-      return responseHandler(res, 404, "No MTO data found");
-    }
-
-
-    const summary = mtos.map((mto) => ({
-      identCode: mto.identCode,
-      uom: mto.uom,
-      size: mto.size,
-      sizeTwo: mto.sizeTwo,
-      cat: mto.cat,
-      shortDesc: mto.shortDesc,
-      scopeQty: mto.scopeQty,
-      issuedQtyAss: mto.issuedQtyAss,
-      issuedDate: mto.issuedDate,
-      consumedQty: mto.consumedQty,
-      balanceStock: mto.balanceStock,
-    }));
-
-    return responseHandler(res, 200, "Summary fetched successfully", summary);
-  } catch (error) {
+    console.error(`Internal Server Error: ${error.message}`);
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
