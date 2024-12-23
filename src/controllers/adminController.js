@@ -220,12 +220,17 @@ exports.getAllLogs = async (req, res) => {
       .limit(Number(limit))
       .sort({ createdAt: -1, _id: 1 })
       .lean();
-
+      const mappedData = data.map((user) => {
+        return {
+          ...user,
+          adminName: user.admin.name || "",
+        };
+      });
     return responseHandler(
       res,
       200,
       `Logs retrieved successfully..!`,
-      data,
+      mappedData,
       totalCount
     );
   } catch (error) {
