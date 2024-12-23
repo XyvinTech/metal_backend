@@ -4,7 +4,7 @@ const validations = require("../validations");
 const { Parser } = require("json2csv");
 const fs = require("fs");
 const Log = require("../models/logModel");
-
+const xlsx = require("xlsx");
 exports.createMto = async (req, res) => {
   try {
     const { error } = validations.createMtoSchema.validate(req.body, {
