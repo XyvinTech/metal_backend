@@ -42,48 +42,36 @@ exports.getMtos = async (req, res) => {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
-
 exports.getMtoById = async (req, res) => {
   try {
-    // Parse query parameters
-    const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 10;
+    const { page = 1, limit = 10, ...queryFilters } = req.query;
 
-    // Calculate skip count
-    const skipCount = (page - 1) * limit;
-
-    // Build filter
+    const skipCount = 10 * (page - 1);
     const filter = { project: req.params.id };
 
-    // Add additional query filters
-    Object.keys(req.query).forEach((key) => {
-      if (key !== "page" && key !== "limit" && req.query[key]) {
-        filter[key] = req.query[key];
+    Object.keys(queryFilters).forEach((key) => {
+      if (queryFilters[key]) {
+        filter[key] = queryFilters[key];
       }
     });
 
-    // Sort order
     const sort = { createdAt: -1, _id: 1 };
 
-    // Query the database
     const mto = await Mto.find(filter).skip(skipCount).limit(limit).sort(sort);
     const totalCount = await Mto.countDocuments(filter);
 
-    // Check if MTO entries are found
     if (!mto || mto.length === 0) {
-      return responseHandler(res, 404, "No MTO entries found");
+      return responseHandler(res, 404, "MTO entry not found");
     }
 
-    // Return response
     return responseHandler(
       res,
       200,
-      "MTO entries retrieved successfully",
+      "MTO entry retrieved successfully",
       mto,
       totalCount
     );
   } catch (error) {
-    // Handle errors
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
