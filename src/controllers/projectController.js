@@ -44,12 +44,15 @@ exports.getProjects = async (req, res) => {
     if (req.user.superAdmin !== true) {
       filter._id = req.user.project;
     }
+    const totalCount = await Project.countDocuments(filter);
     const projects = await Project.find(filter);
+
     return responseHandler(
       res,
       200,
       "Projects retrieved successfully",
-      projects
+      projects,
+      totalCount
     );
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
