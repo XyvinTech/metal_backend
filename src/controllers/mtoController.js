@@ -266,12 +266,11 @@ exports.fetchSummary = async (req, res) => {
 };
 
 
-exports.uploadExcelFile = async (req, res) => {
+exports.bulkUpload = async (req, res) => {
   try {
     if (!req.file) {
       return responseHandler(res, 400, "No file uploaded");
     }
-
     const { project } = req.body;
 
     if (!project) {
@@ -334,6 +333,17 @@ exports.uploadExcelFile = async (req, res) => {
       consumedQty: Number(record.consumedQty) || 0,
       balanceStock: Number(record.balanceStock) || 0,
     }));
+    
+    if(findMto.issuedQtyAss < req.body.consumedQty){
+      await Alert.create({
+
+      project: findMto.project,
+      mto: findMto._id,
+      areaLineSheetIdent: findMto.areaLineSheetIdent,
+      issuedQtyAss: findMto.issuedQtyAss,
+      consumedQty: req.body.consumedQty,
+
+    })}
 
     const existingRecords = await Mto.find({
       areaLineSheetIdent: { $in: data.map((d) => d.areaLineSheetIdent) },

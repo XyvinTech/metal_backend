@@ -4,6 +4,7 @@ const validations = require("../validations");
 const { comparePasswords, hashPassword } = require("../utils/bcrypt");
 const { generateToken } = require("../utils/generateToken");
 const Log = require("../models/logModel");
+const Alert = require("../models/alertModel");
 
 exports.loginAdmin = async (req, res) => {
   try {
@@ -35,9 +36,12 @@ exports.loginAdmin = async (req, res) => {
 
 exports.createAdmin = async (req, res) => {
   try {
-    if(req.user.superAdmin !== true){
-      return responseHandler(res, 403, `You are not authorized to create admin`);
-      
+    if (req.user.superAdmin !== true) {
+      return responseHandler(
+        res,
+        403,
+        `You are not authorized to create admin`
+      );
     }
     const { error } = validations.createAdminSchema.validate(req.body, {
       abortEarly: true,
@@ -95,143 +99,152 @@ exports.getAdmin = async (req, res) => {
   }
 };
 
-
 exports.getAllAdmins = async (req, res) => {
+  try {
+    const { pageNo = 1, status, limit = 10 } = req.query;
+    const skipCount = 10 * (pageNo - 1);
+    const filter = {
+      _id: { $ne: "66cef136282563d7bb086e30" },
+    };
+    const totalCount = await Admin.countDocuments(filter);
+    const data = await Admin.find(filter)
+      .skip(skipCount)
+      .limit(limit)
+      .sort({ createdAt: -1, _id: 1 })
+      .lean();
 
-    try {
-      
-      const { pageNo = 1, status, limit = 10 } = req.query;
-      const skipCount = 10 * (pageNo - 1);
-      const filter = {
-        _id: { $ne: "66cef136282563d7bb086e30" },
-      };
-      const totalCount = await Admin.countDocuments(filter);
-      const data = await Admin.find(filter)
-        .skip(skipCount)
-        .limit(limit)
-        .sort({ createdAt: -1, _id: 1 })
-        .lean();
-  
+    return responseHandler(
+      res,
+      200,
+      `Admins found successfullyy..!`,
+      data,
+      totalCount
+    );
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error ${error.message}`);
+  }
+};
 
+exports.fetchAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id) {
+      return responseHandler(res, 400, "Admin ID is required");
+    }
+    const findAdmin = await Admin.findById(id).select("-password").lean();
+
+    if (!findAdmin) {
+      return responseHandler(res, 404, "Admin not found");
+    }
+    return responseHandler(res, 200, "Admin found", findAdmin);
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error ${error.message}`);
+  }
+};
+
+exports.updateAdmin = async (req, res) => {
+  try {
+    const { error } = validations.updateAdminSchema.validate(req.body, {
+      abortEarly: true,
+    });
+
+    if (error) {
+      return responseHandler(res, 400, `Invalid input: ${error.message}`);
+    }
+
+    const adminId = req.params.id;
+    const findAdmin = await Admin.findById(adminId);
+    if (!findAdmin) {
+      return responseHandler(res, 404, `Admin not found`);
+    }
+
+    if (req.body.password) {
+      req.body.password = await hashPassword(req.body.password);
+    }
+
+    const updatedAdmin = await Admin.findByIdAndUpdate(adminId, req.body, {
+      new: true,
+      runValidators: true,
+    });
+
+    if (updatedAdmin) {
       return responseHandler(
         res,
         200,
-        `Admins found successfullyy..!`,
-        data,
-        totalCount
+        "Admin updated successfully",
+        updatedAdmin
       );
-    } catch (error) {
-  
-      return responseHandler(res, 500, `Internal Server Error ${error.message}`);
+    } else {
+      return responseHandler(res, 400, "Admin update failed");
     }
-  };
-  
-  exports.fetchAdmin = async (req, res) => {
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
+  }
+};
 
-    try {
-      
-      const { id } = req.params;
-      if (!id) {
-        return responseHandler(res, 400, "Admin ID is required");
-      }
-      const findAdmin = await Admin.findById(id)
-        .select("-password")
-        .lean();
-  
-
-  
-      if (!findAdmin) {
-        return responseHandler(res, 404, "Admin not found");
-      }
-      return responseHandler(res, 200, "Admin found", findAdmin);
-    } catch (error) {
-   
-      return responseHandler(res, 500, `Internal Server Error ${error.message}`);
+exports.deleteAdmin = async (req, res) => {
+  try {
+    const adminId = req.params.id;
+    const findAdmin = await Admin.findById(adminId);
+    if (!findAdmin) {
+      return responseHandler(res, 404, `Admin not found`);
     }
-  };
-  
-  exports.updateAdmin = async (req, res) => {
-  
-    try {
-      
-  
-      const { error } = validations.updateAdminSchema.validate(req.body, {
-        abortEarly: true,
-      });
-  
-      if (error) {
-        return responseHandler(res, 400, `Invalid input: ${error.message}`);
-      }
-  
-      const adminId = req.params.id;
-      const findAdmin = await Admin.findById(adminId);
-      if (!findAdmin) {
-        return responseHandler(res, 404, `Admin not found`);
-      }
-  
-      if (req.body.password) {
-        req.body.password = await hashPassword(req.body.password);
-      }
-  
-      const updatedAdmin = await Admin.findByIdAndUpdate(adminId, req.body, {
-        new: true,
-        runValidators: true,
-      });
 
-      if (updatedAdmin) {
-        return responseHandler(
-          res,
-          200,
-          "Admin updated successfully",
-          updatedAdmin
-        );
-      } else {
-        return responseHandler(res, 400, "Admin update failed");
-      }
-    } catch (error) {
+    const deletedAdmin = await Admin.findByIdAndDelete(adminId);
 
-      return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
-    } 
-  };
-  
-  exports.deleteAdmin = async (req, res) => {
-
-    try {
-      
-  
-      const adminId = req.params.id;
-      const findAdmin = await Admin.findById(adminId);
-      if (!findAdmin) {
-        return responseHandler(res, 404, `Admin not found`);
-      }
-  
-      const deletedAdmin = await Admin.findByIdAndDelete(adminId);
-  
- 
-      if (deletedAdmin) {
-        return responseHandler(res, 200, "Admin deleted successfully");
-      } else {
-        return responseHandler(res, 400, "Admin deletion failed");
-      }
-    } catch (error) {
-     
-      return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
+    if (deletedAdmin) {
+      return responseHandler(res, 200, "Admin deleted successfully");
+    } else {
+      return responseHandler(res, 400, "Admin deletion failed");
     }
-  };
-  
-  exports.getAllLogs = async (req, res) => {
-    try {
-      const logs = await Log.find()
-        .populate("admin", "name email") 
-        .populate("project", "title"); 
-  
-      if (!logs.length) {
-        return res.status(404).json({ message: "No logs found" });
-      }
-  
-      return res.status(200).json({ message: "Logs retrieved successfully", logs });
-    } catch (error) {
-      return res.status(500).json({ message: `Internal Server Error: ${error.message}` });
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
+  }
+};
+
+exports.getAllLogs = async (req, res) => {
+  try {
+    const { pageNo = 1, limit = 10 } = req.query;
+    const skipCount = limit * (pageNo - 1);
+
+    const filter = {
+      _id: { $ne: "66cef136282563d7bb086e30" },
+    };
+
+    const totalCount = await Log.countDocuments(filter);
+
+    const data = await Log.find(filter)
+      .populate("admin", "name email")
+      .populate("project", "title")
+      .skip(skipCount)
+      .limit(Number(limit))
+      .sort({ createdAt: -1, _id: 1 })
+      .lean();
+
+    return responseHandler(
+      res,
+      200,
+      `Logs retrieved successfully..!`,
+      data,
+      totalCount
+    );
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
+  }
+};
+
+exports.getAlerts = async (req, res) => {
+  try {
+    const alerts = await Alert.find()
+      .populate("project", "name")
+      .populate("mto", "identCode");
+
+    if (!alerts || alerts.length === 0) {
+      return responseHandler(res, 404, "No alerts found");
     }
-  };
-  
+
+    return responseHandler(res, 200, "Alerts fetched successfully", alerts);
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
+  }
+};

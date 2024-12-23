@@ -336,3 +336,21 @@
  *       500:
  *         description: Internal server error
  */
+
+
+/**
+ * @swagger
+ * /admin/alert:
+ *   get:
+ *     summary: Fetch all alerts
+ *     description: Retrieves a list of all alerts, including associated projects and MTO data.
+ *     tags:
+ *       - Admin
+ *     responses:
+ *       200:
+ *         description: Alerts fetched successfully
+ *       404:
+ *         description: No alerts found
+ *       500:
+ *         description: Internal Server Error
+ */

@@ -13,6 +13,7 @@ adminRoute
 
   adminRoute.get("/list", adminController.getAllAdmins);
   adminRoute.get("/log", adminController.getAllLogs);
+  adminRoute.get("/alert", adminController.getAlerts);
   
   adminRoute
     .route("/profile/:id")
