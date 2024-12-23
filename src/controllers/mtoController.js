@@ -5,6 +5,7 @@ const { Parser } = require("json2csv");
 const fs = require("fs");
 const Log = require("../models/logModel");
 const xlsx = require("xlsx");
+const Alert = require("../models/alertModel");
 exports.createMto = async (req, res) => {
   try {
     const { error } = validations.createMtoSchema.validate(req.body, {
@@ -95,6 +96,17 @@ exports.updateMto = async (req, res) => {
       host: req.headers.host,
       agent: req.headers["user-agent"],
     });
+  
+    if(findMto.issuedQtyAss < req.body.consumedQty){
+      await Alert.create({
+
+      project: findMto.project,
+      mto: findMto._id,
+      areaLineSheetIdent: findMto.areaLineSheetIdent,
+      issuedQtyAss: findMto.issuedQtyAss,
+      consumedQty: req.body.consumedQty,
+
+    })}
 
     const mto = await Mto.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -224,6 +236,34 @@ exports.downloadSummery = async (req, res) => {
   }
 };
 
+exports.fetchSummary = async (req, res) => {
+  try {
+    const mtos = await Mto.find();
+
+    if (!mtos || mtos.length === 0) {
+      return responseHandler(res, 404, "No MTO data found");
+    }
+
+
+    const summary = mtos.map((mto) => ({
+      identCode: mto.identCode,
+      uom: mto.uom,
+      size: mto.size,
+      sizeTwo: mto.sizeTwo,
+      cat: mto.cat,
+      shortDesc: mto.shortDesc,
+      scopeQty: mto.scopeQty,
+      issuedQtyAss: mto.issuedQtyAss,
+      issuedDate: mto.issuedDate,
+      consumedQty: mto.consumedQty,
+      balanceStock: mto.balanceStock,
+    }));
+
+    return responseHandler(res, 200, "Summary fetched successfully", summary);
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
+  }
+};
 
 
 exports.uploadExcelFile = async (req, res) => {
@@ -295,7 +335,6 @@ exports.uploadExcelFile = async (req, res) => {
       balanceStock: Number(record.balanceStock) || 0,
     }));
 
-    // Fetch existing records by areaLineSheetIdent
     const existingRecords = await Mto.find({
       areaLineSheetIdent: { $in: data.map((d) => d.areaLineSheetIdent) },
       project,

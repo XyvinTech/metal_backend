@@ -5,7 +5,7 @@ const mtoRoute = express.Router();
 const multer = require('multer');
 const upload = multer({ dest: 'uploads/' });
 
-mtoRoute.use(authVerify);
+// mtoRoute.use(authVerify);
 mtoRoute.post("/", mtoController.createMto);
 
 mtoRoute
@@ -16,7 +16,9 @@ mtoRoute
 
 mtoRoute.get("/list", mtoController.getMtos);
 mtoRoute.get("/download", mtoController.downloadMtoCsv);
-mtoRoute.get("/summery", mtoController.downloadSummery);
+mtoRoute.get("/summery", mtoController.fetchSummary);
+mtoRoute.get("/summerydownload", mtoController.downloadSummery);
+
 mtoRoute.post("/upload", upload.single('file'), mtoController.uploadExcelFile);
 
 module.exports = mtoRoute;
