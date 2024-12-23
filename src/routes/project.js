@@ -3,7 +3,7 @@ const projectController = require("../controllers/projectController");
 const projectRoute = express.Router();
 const authVerify = require("../middlewares/authVerify");
 
-// projectRoute.use(authVerify);
+projectRoute.use(authVerify);
 projectRoute.post("/", projectController.createProject);
 
 
