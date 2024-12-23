@@ -45,18 +45,26 @@ exports.getMtos = async (req, res) => {
 
 exports.getMtoById = async (req, res) => {
   try {
-    const { page = 1, limit = 10 } = req.query;
+    const { page = 1, limit = 10, ...queryFilters } = req.query;
+
     const skipCount = 10 * (page - 1);
+    const filter = { project: req.params.id };
 
-    const mto = await Mto.find({ project: req.params.id })
-      .skip(skipCount)
-      .limit(limit)
-      .sort({ createdAt: -1, _id: 1 });
-    const totalCount = await Mto.countDocuments({ project: req.params.id });
+    Object.keys(queryFilters).forEach((key) => {
+      if (queryFilters[key]) {
+        filter[key] = queryFilters[key];
+      }
+    });
 
-    if (!mto) {
+    const sort = { createdAt: -1, _id: 1 };
+
+    const mto = await Mto.find(filter).skip(skipCount).limit(limit).sort(sort);
+    const totalCount = await Mto.countDocuments(filter);
+
+    if (!mto || mto.length === 0) {
       return responseHandler(res, 404, "MTO entry not found");
     }
+
     return responseHandler(
       res,
       200,
