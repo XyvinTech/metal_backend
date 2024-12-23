@@ -50,7 +50,7 @@ exports.getMtoById = async (req, res) => {
     const filter = { project: req.params.id };
 
     Object.keys(queryFilters).forEach((key) => {
-      if (queryFilters[key]) {
+      if (queryFilters[key] && key !== "pageNo" && key !== "limit") {
         filter[key] = { $regex: queryFilters[key], $options: "i" };
       }
     });
