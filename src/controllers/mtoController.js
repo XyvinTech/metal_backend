@@ -51,7 +51,7 @@ exports.getMtoById = async (req, res) => {
 
     Object.keys(queryFilters).forEach((key) => {
       if (queryFilters[key]) {
-        filter[key] = queryFilters[key];
+        filter[key] = { $regex: queryFilters[key], $options: "i" };
       }
     });
 
@@ -75,7 +75,6 @@ exports.getMtoById = async (req, res) => {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
-
 
 exports.updateMto = async (req, res) => {
   try {
