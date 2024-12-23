@@ -42,6 +42,7 @@ exports.getMtos = async (req, res) => {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
+
 exports.getMtoById = async (req, res) => {
   try {
     // Parse query parameters
