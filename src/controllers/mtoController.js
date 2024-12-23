@@ -51,7 +51,22 @@ exports.getMtoById = async (req, res) => {
 
     Object.keys(queryFilters).forEach((key) => {
       if (queryFilters[key] && key !== "pageNo" && key !== "limit") {
-        filter[key] = { $regex: queryFilters[key], $options: "i" };
+        const isNumberField = [
+          "sheet",
+          "size",
+          "sizeTwo",
+          "scopeQty",
+          "issuedQtyAss",
+          "balToIssue",
+          "consumedQty",
+          "balanceStock",
+        ].includes(key);
+
+        if (isNumberField) {
+          filter[key] = Number(queryFilters[key]);
+        } else {
+          filter[key] = { $regex: queryFilters[key], $options: "i" };
+        }
       }
     });
 
