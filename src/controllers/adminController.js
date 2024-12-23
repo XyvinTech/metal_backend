@@ -220,10 +220,10 @@ exports.getAllLogs = async (req, res) => {
       .limit(Number(limit))
       .sort({ createdAt: -1, _id: 1 })
       .lean();
-      const mappedData = data.map((user) => {
+      const mappedData = data.map((logs) => {
         return {
-          ...user,
-          adminName: user.admin.name || "",
+          ...logs,
+          adminName: logs.admin.name || "",
         };
       });
     return responseHandler(
