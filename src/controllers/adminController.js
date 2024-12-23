@@ -241,8 +241,18 @@ exports.getAlerts = async (req, res) => {
     const alerts = await Alert.find({ project: req.params.id })
       .skip(skipCount)
       .sort({ createdAt: -1, _id: 1 })
-      .populate("project", "name")
+      .populate("project", "project")
       .populate("mto", "identCode");
+console.log(alerts);
+
+const mappedData = alerts.map((user) => {
+      return {
+        ...user,
+        projectname: user.project.project || "",
+        mtoIdentCode: user.mto.identCode || "",
+      };
+    });
+
     const totalCount = await Alert.countDocuments({ project: req.params.id });
 
     if (!alerts || alerts.length === 0) {
@@ -254,6 +264,7 @@ exports.getAlerts = async (req, res) => {
       200,
       "Alerts fetched successfully",
       alerts,
+      mappedData,
       totalCount
     );
   } catch (error) {
