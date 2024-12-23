@@ -233,28 +233,29 @@ exports.getAllLogs = async (req, res) => {
   }
 };
 
-
-
 exports.getAlerts = async (req, res) => {
   try {
     const { page = 1, limit = 10 } = req.query;
     const skipCount = (page - 1) * limit;
 
-   
     const alerts = await Alert.find({ project: req.params.id })
       .skip(skipCount)
       .sort({ createdAt: -1, _id: 1 })
       .populate("project", "name")
       .populate("mto", "identCode");
-
-  
+    const totalCount = await Alert.countDocuments({ project: req.params.id });
 
     if (!alerts || alerts.length === 0) {
       return responseHandler(res, 404, "No alerts found");
     }
 
-
-    return responseHandler(res, 200, "Alerts fetched successfully", alerts);
+    return responseHandler(
+      res,
+      200,
+      "Alerts fetched successfully",
+      alerts,
+      totalCount
+    );
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }

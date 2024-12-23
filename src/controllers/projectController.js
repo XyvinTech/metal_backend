@@ -8,11 +8,13 @@ const xlsx = require("xlsx");
 const Log = require("../models/logModel");
 
 exports.createProject = async (req, res) => {
-
   try {
-    if(req.user.superAdmin != true){
-      return responseHandler(res, 403, `You are not authorized to create admin`);
-      
+    if (req.user.superAdmin != true) {
+      return responseHandler(
+        res,
+        403,
+        `You are not authorized to create admin`
+      );
     }
     const { error } = validations.createProjectSchema.validate(req.body, {
       abortEarly: true,
@@ -39,7 +41,7 @@ exports.getProjects = async (req, res) => {
   try {
     const filter = {};
     console.log(req.user);
-    if(req.user.superAdmin !== true){
+    if (req.user.superAdmin !== true) {
       filter._id = req.user.project;
     }
     const projects = await Project.find(filter);
@@ -88,5 +90,3 @@ exports.updateProject = async (req, res) => {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
-
-

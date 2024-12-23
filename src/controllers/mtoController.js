@@ -96,17 +96,16 @@ exports.updateMto = async (req, res) => {
       host: req.headers.host,
       agent: req.headers["user-agent"],
     });
-  
-    if(findMto.issuedQtyAss < req.body.consumedQty){
+
+    if (findMto.issuedQtyAss < req.body.consumedQty) {
       await Alert.create({
-
-      project: findMto.project,
-      mto: findMto._id,
-      areaLineSheetIdent: findMto.areaLineSheetIdent,
-      issuedQtyAss: findMto.issuedQtyAss,
-      consumedQty: req.body.consumedQty,
-
-    })}
+        project: findMto.project,
+        mto: findMto._id,
+        areaLineSheetIdent: findMto.areaLineSheetIdent,
+        issuedQtyAss: findMto.issuedQtyAss,
+        consumedQty: req.body.consumedQty,
+      });
+    }
 
     const mto = await Mto.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -133,7 +132,6 @@ exports.deleteMto = async (req, res) => {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
-
 
 exports.downloadMtoCsv = async (req, res) => {
   try {
@@ -191,23 +189,20 @@ exports.downloadMtoCsv = async (req, res) => {
   }
 };
 
-
 exports.fetchSummaryByProjectId = async (req, res) => {
   try {
     const { page = 1, limit = 10 } = req.query;
     const skipCount = 10 * (page - 1);
 
-
     const mto = await Mto.find({ project: req.params.id })
       .skip(skipCount)
       .limit(limit)
       .sort({ createdAt: -1, _id: 1 });
-
+    const totalCount = await Mto.countDocuments({ project: req.params.id });
 
     if (!mto || mto.length === 0) {
       return responseHandler(res, 404, "MTO entry not found");
     }
-
 
     const summary = mto.map((mtoItem) => ({
       identCode: mtoItem.identCode,
@@ -223,19 +218,17 @@ exports.fetchSummaryByProjectId = async (req, res) => {
       balanceStock: mtoItem.balanceStock,
     }));
 
-
     return responseHandler(
       res,
       200,
       "MTO entry retrieved successfully",
-      summary
+      summary,
+      totalCount
     );
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
-
-
 
 exports.downloadSummaryByProjectId = async (req, res) => {
   try {
@@ -263,7 +256,7 @@ exports.downloadSummaryByProjectId = async (req, res) => {
 
     const downloadsDir = "./downloads";
     if (!fs.existsSync(downloadsDir)) {
-      fs.mkdirSync(downloadsDir, { recursive: true }); 
+      fs.mkdirSync(downloadsDir, { recursive: true });
     }
 
     const filePath = `${downloadsDir}/mto_data_${Date.now()}.csv`;
@@ -286,7 +279,6 @@ exports.downloadSummaryByProjectId = async (req, res) => {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
-
 
 exports.bulkUpload = async (req, res) => {
   try {
@@ -355,17 +347,16 @@ exports.bulkUpload = async (req, res) => {
       consumedQty: Number(record.consumedQty) || 0,
       balanceStock: Number(record.balanceStock) || 0,
     }));
-    
-    if(findMto.issuedQtyAss < req.body.consumedQty){
+
+    if (findMto.issuedQtyAss < req.body.consumedQty) {
       await Alert.create({
-
-      project: findMto.project,
-      mto: findMto._id,
-      areaLineSheetIdent: findMto.areaLineSheetIdent,
-      issuedQtyAss: findMto.issuedQtyAss,
-      consumedQty: req.body.consumedQty,
-
-    })}
+        project: findMto.project,
+        mto: findMto._id,
+        areaLineSheetIdent: findMto.areaLineSheetIdent,
+        issuedQtyAss: findMto.issuedQtyAss,
+        consumedQty: req.body.consumedQty,
+      });
+    }
 
     const existingRecords = await Mto.find({
       areaLineSheetIdent: { $in: data.map((d) => d.areaLineSheetIdent) },
