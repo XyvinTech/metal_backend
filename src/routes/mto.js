@@ -5,7 +5,7 @@ const mtoRoute = express.Router();
 const multer = require("multer");
 const upload = multer({ dest: "uploads/" });
 
-mtoRoute.use(authVerify);
+// mtoRoute.use(authVerify);
 mtoRoute.post("/", mtoController.createMto);
 
 mtoRoute
