@@ -12,7 +12,8 @@ adminRoute
 
 
   adminRoute.get("/list", adminController.getAllAdmins);
-
+  adminRoute.get("/log", adminController.getAllLogs);
+  
   adminRoute
     .route("/profile/:id")
     .get(adminController.fetchAdmin)

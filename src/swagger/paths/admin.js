@@ -248,3 +248,91 @@
  *       500:
  *         description: Internal Server Error
  */
+
+
+/**
+ * @swagger
+ * /admin/log:
+ *   get:
+ *     summary: Retrieve all logs
+ *     description: Fetch all logs with details about associated admin and project, if available.
+ *     tags:
+ *       - Admin
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Logs retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Logs retrieved successfully
+ *                 logs:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       admin:
+ *                         type: object
+ *                         properties:
+ *                           name:
+ *                             type: string
+ *                             example: John Doe
+ *                           email:
+ *                             type: string
+ *                             example: john.doe@example.com
+ *                       project:
+ *                         type: object
+ *                         properties:
+ *                           title:
+ *                             type: string
+ *                             example: Project Alpha
+ *                       host:
+ *                         type: string
+ *                         example: localhost
+ *                       agent:
+ *                         type: string
+ *                         example: Mozilla/5.0
+ *                       oldIssuedQtyAss:
+ *                         type: number
+ *                         example: 5
+ *                       oldIssuedDate:
+ *                         type: string
+ *                         format: date-time
+ *                         example: 2024-12-21T10:00:00.000Z
+ *                       oldConsumedQty:
+ *                         type: number
+ *                         example: 3
+ *                       newIssuedQtyAss:
+ *                         type: number
+ *                         example: 10
+ *                       newIssuedDate:
+ *                         type: string
+ *                         format: date-time
+ *                         example: 2024-12-22T12:00:00.000Z
+ *                       newConsumedQty:
+ *                         type: number
+ *                         example: 8
+ *                       description:
+ *                         type: string
+ *                         example: Updated project log details
+ *                       areaLineSheetIdent:
+ *                         type: string
+ *                         example: ALSI-12345
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                         example: 2024-12-20T10:00:00.000Z
+ *                       updatedAt:
+ *                         type: string
+ *                         format: date-time
+ *                         example: 2024-12-21T15:00:00.000Z
+ *       404:
+ *         description: No logs found
+ *       500:
+ *         description: Internal server error
+ */

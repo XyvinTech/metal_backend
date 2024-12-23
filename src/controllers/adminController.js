@@ -3,6 +3,7 @@ const responseHandler = require("../helpers/responseHandler");
 const validations = require("../validations");
 const { comparePasswords, hashPassword } = require("../utils/bcrypt");
 const { generateToken } = require("../utils/generateToken");
+const Log = require("../models/logModel");
 
 exports.loginAdmin = async (req, res) => {
   try {
@@ -215,6 +216,22 @@ exports.getAllAdmins = async (req, res) => {
     } catch (error) {
      
       return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
+    }
+  };
+  
+  exports.getAllLogs = async (req, res) => {
+    try {
+      const logs = await Log.find()
+        .populate("admin", "name email") 
+        .populate("project", "title"); 
+  
+      if (!logs.length) {
+        return res.status(404).json({ message: "No logs found" });
+      }
+  
+      return res.status(200).json({ message: "Logs retrieved successfully", logs });
+    } catch (error) {
+      return res.status(500).json({ message: `Internal Server Error: ${error.message}` });
     }
   };
   
