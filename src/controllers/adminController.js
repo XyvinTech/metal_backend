@@ -242,8 +242,8 @@ exports.getAlerts = async (req, res) => {
       .skip(skipCount)
       .sort({ createdAt: -1, _id: 1 })
       .populate("project", "project")
-      .populate("mto", "identCode");
-console.log(alerts);
+      .populate("mto", "identCode")
+      .lean();
 
 const mappedData = alerts.map((user) => {
       return {
@@ -263,9 +263,9 @@ const mappedData = alerts.map((user) => {
       res,
       200,
       "Alerts fetched successfully",
-      alerts,
       mappedData,
       totalCount
+    
     );
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
