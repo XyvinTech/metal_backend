@@ -223,7 +223,7 @@ exports.getAllLogs = async (req, res) => {
       const mappedData = data.map((logs) => {
         return {
           ...logs,
-          adminName: logs.admin.name || "",
+          adminName: logs?.admin?.name || "",
         };
       });
     return responseHandler(
