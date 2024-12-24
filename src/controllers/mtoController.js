@@ -301,7 +301,6 @@ exports.downloadSummaryByProjectId = async (req, res) => {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
-
 exports.bulkUpload = async (req, res) => {
   try {
     if (!req.file) {
@@ -370,14 +369,22 @@ exports.bulkUpload = async (req, res) => {
       balanceStock: Number(record.balanceStock) || 0,
     }));
 
-    if (findMto.issuedQtyAss < req.body.consumedQty) {
-      await Alert.create({
-        project: findMto.project,
-        mto: findMto._id,
-        areaLineSheetIdent: findMto.areaLineSheetIdent,
-        issuedQtyAss: findMto.issuedQtyAss,
-        consumedQty: req.body.consumedQty,
+   
+    for (const record of data) {
+      const findMto = await Mto.findOne({
+        areaLineSheetIdent: record.areaLineSheetIdent,
+        project,
       });
+
+      if (findMto && findMto.issuedQtyAss < record.consumedQty) {
+        await Alert.create({
+          project: findMto.project,
+          mto: findMto._id,
+          areaLineSheetIdent: findMto.areaLineSheetIdent,
+          issuedQtyAss: findMto.issuedQtyAss,
+          consumedQty: record.consumedQty,
+        });
+      }
     }
 
     const existingRecords = await Mto.find({
@@ -385,7 +392,6 @@ exports.bulkUpload = async (req, res) => {
       project,
     });
 
-    // Prepare records for insertion and logging
     const logs = [];
     const recordsToInsert = [];
 
@@ -396,7 +402,6 @@ exports.bulkUpload = async (req, res) => {
       );
 
       if (oldRecord) {
-        // Log changes for updated records
         logs.push({
           admin: req.userId,
           description: "Bulk update",
@@ -412,20 +417,16 @@ exports.bulkUpload = async (req, res) => {
           agent: req.headers["user-agent"],
         });
 
-        // Update existing record in database
         await Mto.findByIdAndUpdate(oldRecord._id, newRecord);
       } else {
-        // New record to insert
         recordsToInsert.push(newRecord);
       }
     }
 
-    // Insert new records
     if (recordsToInsert.length > 0) {
       await Mto.insertMany(recordsToInsert);
     }
 
-    // Log the changes
     if (logs.length > 0) {
       await Log.insertMany(logs);
     }
