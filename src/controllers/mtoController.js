@@ -78,30 +78,27 @@ exports.getMtoById = async (req, res) => {
     .sort(sort)
     .populate("project", "project")
     .lean();
-    const totalCount = await Mto.countDocuments(filter);
-
-
-
-
-    if (!mto || mto.length === 0) {
-      return responseHandler(res, 404, "MTO entry not found");
+  
+  const totalCount = await Mto.countDocuments(filter);
+  
+  if (!mto || mto.length === 0) {
+    return responseHandler(res, 404, "MTO entry not found");
+  }
+  
+  const projectName = mto[0].project?.project || ""; 
+  
+  return responseHandler(
+    res,
+    200,
+    "MTO entry retrieved successfully",
+    {
+      mto,
+      totalCount,
+      projectName
     }
+  );
 
-    const mappedData = mto.map((data) => {
-      return {
-        ...data,
-        projectname: data.project.project || "",
-      };
-    });
-
-
-    return responseHandler(
-      res,
-      200,
-      "MTO entry retrieved successfully",
-      mappedData,
-      totalCount
-    );
+    
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
