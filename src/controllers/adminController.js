@@ -5,8 +5,7 @@ const { comparePasswords, hashPassword } = require("../utils/bcrypt");
 const { generateToken } = require("../utils/generateToken");
 const Log = require("../models/logModel");
 const Alert = require("../models/alertModel");
-const { createObjectCsvStringifier } = require('csv-writer');
-
+const { createObjectCsvStringifier } = require("csv-writer");
 
 exports.loginAdmin = async (req, res) => {
   try {
@@ -222,12 +221,12 @@ exports.getAllLogs = async (req, res) => {
       .limit(Number(limit))
       .sort({ createdAt: -1, _id: 1 })
       .lean();
-      const mappedData = data.map((logs) => {
-        return {
-          ...logs,
-          adminName: logs?.admin?.name || "",
-        };
-      });
+    const mappedData = data.map((logs) => {
+      return {
+        ...logs,
+        adminName: logs?.admin?.name || "",
+      };
+    });
     return responseHandler(
       res,
       200,
@@ -252,7 +251,7 @@ exports.getAlerts = async (req, res) => {
       .populate("mto", "identCode")
       .lean();
 
-const mappedData = alerts.map((user) => {
+    const mappedData = alerts.map((user) => {
       return {
         ...user,
         projectname: user.project.project || "",
@@ -272,14 +271,11 @@ const mappedData = alerts.map((user) => {
       "Alerts fetched successfully",
       mappedData,
       totalCount
-    
     );
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
-
-
 
 exports.downloadAlerts = async (req, res) => {
   try {
@@ -297,7 +293,7 @@ exports.downloadAlerts = async (req, res) => {
       id: alert._id || "",
       projectName: alert.project?.project || "",
       mtoIdentCode: alert.mto?.identCode || "",
-      areaLineSheetIdent: alert.areaLineSheetIdent || "", 
+      areaLineSheetIdent: alert.areaLineSheetIdent || "",
       issuedQtyAss: alert.issuedQtyAss || "",
       consumedQty: alert.consumedQty || "",
     }));
@@ -312,7 +308,9 @@ exports.downloadAlerts = async (req, res) => {
       ],
     });
 
-    const csvData = csvStringifier.getHeaderString() + csvStringifier.stringifyRecords(mappedData);
+    const csvData =
+      csvStringifier.getHeaderString() +
+      csvStringifier.stringifyRecords(mappedData);
 
     res.setHeader("Content-Type", "text/csv");
     res.setHeader("Content-Disposition", 'attachment; filename="alerts.csv"');

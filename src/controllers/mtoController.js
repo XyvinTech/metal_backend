@@ -72,18 +72,34 @@ exports.getMtoById = async (req, res) => {
 
     const sort = { createdAt: -1, _id: 1 };
 
-    const mto = await Mto.find(filter).skip(skipCount).limit(limit).sort(sort);
+    const mto = await Mto.find(filter)
+    .skip(skipCount)
+    .limit(limit)
+    .sort(sort)
+    .populate("project", "project")
+    .lean();
     const totalCount = await Mto.countDocuments(filter);
+
+
+
 
     if (!mto || mto.length === 0) {
       return responseHandler(res, 404, "MTO entry not found");
     }
 
+    const mappedData = mto.map((data) => {
+      return {
+        ...data,
+        projectname: data.project.project || "",
+      };
+    });
+
+
     return responseHandler(
       res,
       200,
       "MTO entry retrieved successfully",
-      mto,
+      mappedData,
       totalCount
     );
   } catch (error) {

@@ -5,6 +5,7 @@ const authVerify = require("../middlewares/authVerify");
 
 projectRoute.use(authVerify);
 projectRoute.post("/", projectController.createProject);
+projectRoute.post("/create", projectController.createProjectAndBulkUpload);
 
 
 projectRoute
