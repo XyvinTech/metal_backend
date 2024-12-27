@@ -5,6 +5,8 @@ const { comparePasswords, hashPassword } = require("../utils/bcrypt");
 const { generateToken } = require("../utils/generateToken");
 const Log = require("../models/logModel");
 const Alert = require("../models/alertModel");
+const { createObjectCsvStringifier } = require('csv-writer');
+
 
 exports.loginAdmin = async (req, res) => {
   try {
@@ -273,6 +275,51 @@ const mappedData = alerts.map((user) => {
     
     );
   } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
+  }
+};
+
+
+
+exports.downloadAlerts = async (req, res) => {
+  try {
+    const alerts = await Alert.find({ project: req.params.id })
+      .sort({ createdAt: -1, _id: 1 })
+      .populate("project", "project")
+      .populate("mto", "identCode areaLineSheetIdent")
+      .lean();
+
+    if (!alerts || alerts.length === 0) {
+      return responseHandler(res, 404, "No alerts found for CSV export");
+    }
+
+    const mappedData = alerts.map((alert) => ({
+      id: alert._id || "",
+      projectName: alert.project?.project || "",
+      mtoIdentCode: alert.mto?.identCode || "",
+      areaLineSheetIdent: alert.areaLineSheetIdent || "", 
+      issuedQtyAss: alert.issuedQtyAss || "",
+      consumedQty: alert.consumedQty || "",
+    }));
+
+    const csvStringifier = createObjectCsvStringifier({
+      header: [
+        { id: "projectName", title: "Project" },
+        { id: "mtoIdentCode", title: "Ident Code" },
+        { id: "areaLineSheetIdent", title: "Area Line Sheet Ident" },
+        { id: "issuedQtyAss", title: "Issued Qty Ass" },
+        { id: "consumedQty", title: "Consumed Qty" },
+      ],
+    });
+
+    const csvData = csvStringifier.getHeaderString() + csvStringifier.stringifyRecords(mappedData);
+
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", 'attachment; filename="alerts.csv"');
+
+    return res.status(200).send(csvData);
+  } catch (error) {
+    console.error("Error generating CSV:", error.message);
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };

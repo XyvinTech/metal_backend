@@ -10,8 +10,8 @@ projectRoute.post("/", projectController.createProject);
 projectRoute
   .route("/single/:id")
   .get(projectController.getProjectById)
-  // .put(projectController.updateProject)
-  // .delete(projectController.deleteProject);
+  .put(projectController.updateProject)
+  .delete(projectController.deleteProject);
 
 projectRoute.get("/list", projectController.getProjects);
 

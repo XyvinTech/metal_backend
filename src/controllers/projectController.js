@@ -2,10 +2,6 @@ const Project = require("../models/projectModel");
 const Mto = require("../models/mtoModel");
 const responseHandler = require("../helpers/responseHandler");
 const validations = require("../validations");
-const fs = require("fs");
-
-const xlsx = require("xlsx");
-const Log = require("../models/logModel");
 
 exports.createProject = async (req, res) => {
   try {
@@ -40,7 +36,7 @@ exports.createProject = async (req, res) => {
 exports.getProjects = async (req, res) => {
   try {
     const filter = {};
-    console.log(req.user);
+
     if (req.user.superAdmin !== true) {
       filter._id = req.user.project;
     }
@@ -89,6 +85,18 @@ exports.updateProject = async (req, res) => {
       return responseHandler(res, 404, "Project not found");
     }
     return responseHandler(res, 200, "Project updated successfully", project);
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
+  }
+};
+
+exports.deleteProject = async (req, res) => {
+  try {
+    const project = await Project.findByIdAndDelete(req.params.id);
+    if (!project) {
+      return responseHandler(res, 404, "Project not found");
+    }
+    return responseHandler(res, 200, "Project deleted successfully");
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }

@@ -428,3 +428,55 @@
  *                   type: string
  *                   example: "Internal Server Error: [error details]"
  */
+
+
+/**
+ * @swagger
+ * /admin/alerts/download/{id}:
+ *   get:
+ *     summary: Download alerts for a specific project as a CSV file
+ *     description: Generates and downloads a CSV file containing a list of alerts for the specified project, including project name and MTO ident codes.
+ *     tags:
+ *       - Admin
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the project for which alerts are being downloaded.
+ *     responses:
+ *       200:
+ *         description: CSV file containing the alerts is generated and downloaded successfully.
+ *         content:
+ *           text/csv:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       404:
+ *         description: No alerts found for the specified project.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: integer
+ *                   example: 404
+ *                 message:
+ *                   type: string
+ *                   example: "No alerts found for CSV export"
+ *       500:
+ *         description: Internal Server Error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: integer
+ *                   example: 500
+ *                 message:
+ *                   type: string
+ *                   example: "Internal Server Error: [error details]"
+ */

@@ -14,6 +14,7 @@ adminRoute
   adminRoute.get("/list", adminController.getAllAdmins);
   adminRoute.get("/log", adminController.getAllLogs);
   adminRoute.get("/alert/:id", adminController.getAlerts);
+  adminRoute.get('/alerts/download/:id', adminController.downloadAlerts);
   
   adminRoute
     .route("/profile/:id")

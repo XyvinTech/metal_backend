@@ -301,6 +301,7 @@ exports.downloadSummaryByProjectId = async (req, res) => {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
+
 exports.bulkUpload = async (req, res) => {
   try {
     if (!req.file) {
@@ -369,7 +370,6 @@ exports.bulkUpload = async (req, res) => {
       balanceStock: Number(record.balanceStock) || 0,
     }));
 
-   
     for (const record of data) {
       const findMto = await Mto.findOne({
         areaLineSheetIdent: record.areaLineSheetIdent,
