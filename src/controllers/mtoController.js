@@ -4,7 +4,6 @@ const validations = require("../validations");
 const { Parser } = require("json2csv");
 const fs = require("fs");
 const Log = require("../models/logModel");
-const xlsx = require("xlsx");
 const Alert = require("../models/alertModel");
 exports.createMto = async (req, res) => {
   try {
@@ -73,32 +72,25 @@ exports.getMtoById = async (req, res) => {
     const sort = { createdAt: -1, _id: 1 };
 
     const mto = await Mto.find(filter)
-    .skip(skipCount)
-    .limit(limit)
-    .sort(sort)
-    .populate("project", "project")
-    .lean();
-  
-  const totalCount = await Mto.countDocuments(filter);
-  
-  if (!mto || mto.length === 0) {
-    return responseHandler(res, 404, "MTO entry not found");
-  }
-  
-  const projectName = mto[0].project?.project || ""; 
-  
-  return responseHandler(
-    res,
-    200,
-    "MTO entry retrieved successfully",
-    {
+      .skip(skipCount)
+      .limit(limit)
+      .sort(sort)
+      .populate("project", "project")
+      .lean();
+
+    const totalCount = await Mto.countDocuments(filter);
+
+    if (!mto || mto.length === 0) {
+      return responseHandler(res, 404, "MTO entry not found");
+    }
+
+    const projectName = mto[0].project?.project || "";
+
+    return responseHandler(res, 200, "MTO entry retrieved successfully", {
       mto,
       totalCount,
-      projectName
-    }
-  );
-
-    
+      projectName,
+    });
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
@@ -311,151 +303,6 @@ exports.downloadSummaryByProjectId = async (req, res) => {
     });
   } catch (error) {
     console.error(`Internal Server Error: ${error.message}`);
-    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
-  }
-};
-
-exports.bulkUpload = async (req, res) => {
-  try {
-    if (!req.file) {
-      return responseHandler(res, 400, "No file uploaded");
-    }
-    const { project } = req.body;
-
-    if (!project) {
-      fs.unlinkSync(req.file.path);
-      return responseHandler(res, 400, "Project ID is required");
-    }
-
-    const filePath = req.file.path;
-    const workbook = xlsx.readFile(filePath, { cellDates: true });
-    const sheetName = workbook.SheetNames[0];
-
-    let data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], {
-      header: [
-        "unit",
-        "lineNo",
-        "lineLocation",
-        "areaLineSheetIdent",
-        "area",
-        "line",
-        "sheet",
-        "identCode",
-        "uom",
-        "size",
-        "sizeTwo",
-        "specCode",
-        "shortCode",
-        "cat",
-        "shortDesc",
-        "mtoRev",
-        "sf",
-        "scopeQty",
-        "issuedQtyAss",
-        "issuedDate",
-        "balToIssue",
-        "consumedQty",
-        "balanceStock",
-      ],
-      defval: "",
-    });
-
-    if (data.length <= 2) {
-      fs.unlinkSync(filePath);
-      return responseHandler(
-        res,
-        400,
-        "Uploaded file is empty or has insufficient data"
-      );
-    }
-
-    data = data.slice(2).map((record) => ({
-      ...record,
-      project,
-      sheet: Number(record.sheet) || 0,
-      size: Number(record.size) || 0,
-      sizeTwo: Number(record.sizeTwo) || 0,
-      scopeQty: Number(record.scopeQty) || 0,
-      issuedQtyAss: Number(record.issuedQtyAss) || 0,
-      issuedDate: record.issuedDate,
-      balToIssue: Number(record.balToIssue) || 0,
-      consumedQty: Number(record.consumedQty) || 0,
-      balanceStock: Number(record.balanceStock) || 0,
-    }));
-
-    for (const record of data) {
-      const findMto = await Mto.findOne({
-        areaLineSheetIdent: record.areaLineSheetIdent,
-        project,
-      });
-
-      if (findMto && findMto.issuedQtyAss < record.consumedQty) {
-        await Alert.create({
-          project: findMto.project,
-          mto: findMto._id,
-          areaLineSheetIdent: findMto.areaLineSheetIdent,
-          issuedQtyAss: findMto.issuedQtyAss,
-          consumedQty: record.consumedQty,
-        });
-      }
-    }
-
-    const existingRecords = await Mto.find({
-      areaLineSheetIdent: { $in: data.map((d) => d.areaLineSheetIdent) },
-      project,
-    });
-
-    const logs = [];
-    const recordsToInsert = [];
-
-    for (const newRecord of data) {
-      const oldRecord = existingRecords.find(
-        (existing) =>
-          existing.areaLineSheetIdent === newRecord.areaLineSheetIdent
-      );
-
-      if (oldRecord) {
-        logs.push({
-          admin: req.userId,
-          description: "Bulk update",
-          oldIssuedQtyAss: oldRecord.issuedQtyAss,
-          oldIssuedDate: oldRecord.issuedDate,
-          oldConsumedQty: oldRecord.consumedQty,
-          newIssuedQtyAss: newRecord.issuedQtyAss,
-          newIssuedDate: newRecord.issuedDate,
-          newConsumedQty: newRecord.consumedQty,
-          project: oldRecord.project,
-          areaLineSheetIdent: oldRecord.areaLineSheetIdent,
-          host: req.headers.host,
-          agent: req.headers["user-agent"],
-        });
-
-        await Mto.findByIdAndUpdate(oldRecord._id, newRecord);
-      } else {
-        recordsToInsert.push(newRecord);
-      }
-    }
-
-    if (recordsToInsert.length > 0) {
-      await Mto.insertMany(recordsToInsert);
-    }
-
-    if (logs.length > 0) {
-      await Log.insertMany(logs);
-    }
-
-    fs.unlinkSync(filePath);
-
-    return responseHandler(
-      res,
-      201,
-      "Excel file uploaded and data saved/updated successfully",
-      { updated: logs.length, inserted: recordsToInsert.length }
-    );
-  } catch (error) {
-    if (fs.existsSync(req.file?.path)) {
-      fs.unlinkSync(req.file.path);
-    }
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };

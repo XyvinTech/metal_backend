@@ -7,7 +7,6 @@ const projectSchema = mongoose.Schema(
     description: { type: String },
     owner: { type: String },
     consultant: { type: String },
-
   },
   {
     timestamps: true,

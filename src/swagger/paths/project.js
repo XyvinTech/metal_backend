@@ -7,45 +7,6 @@
 
 /**
  * @swagger
- * /project:
- *   post:
- *     summary: Create a new project
- *     description: Creates a new project with the provided details.
- *     tags:
- *       - Projects
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               project:
- *                 type: string
- *                 example: "Tech Revamp"
- *               code:
- *                 type: string
- *                 example: "TR2024"
- *               description:
- *                 type: string
- *                 example: "A project to revamp the technology infrastructure."
- *               owner:
- *                 type: string
- *                 example: "John Doe"
- *               consultant:
- *                 type: string
- *                 example: "Jane Smith"
- *     responses:
- *       201:
- *         description: Project created successfully
- *       400:
- *         description: Invalid input
- *       500:
- *         description: Internal Server Error
- */
-
-/**
- * @swagger
  * /project/list:
  *   get:
  *     summary: Get all projects
@@ -155,8 +116,6 @@
  *         description: Internal Server Error
  */
 
-
-
 /**
  * @swagger
  * /project/single/{id}:
@@ -229,13 +188,12 @@
  *         description: Internal Server Error
  */
 
-
 /**
  * @swagger
- * /project/create:
+ * /project:
  *   post:
- *     summary: Create a project and upload an Excel file
- *     description: Creates a project and uploads an Excel file to associate its content with the project, saving the data to the database.
+ *     summary: Bulk upload data and create project
+ *     description: Uploads an Excel file for bulk data and creates a new project if not provided.
  *     tags:
  *       - Projects
  *     requestBody:
@@ -248,24 +206,25 @@
  *               file:
  *                 type: string
  *                 format: binary
- *                 description: The Excel file to be uploaded.
- *               projectName:
+ *                 description: Excel file containing data for bulk upload.
+ *               project:
  *                 type: string
- *                 description: The name of the project to create.
+ *                 description: Project Name (optional, creates a new project if not provided).
+ *               code:
+ *                 type: string
+ *                 description: Unique project code (required if creating a new project).
  *               description:
  *                 type: string
- *                 description: A brief description of the project.
- *               createdBy:
+ *                 description: Detailed description of the project (required if creating a new project).
+ *               owner:
  *                 type: string
- *                 format: uuid
- *                 description: The user ID of the person creating the project.
- *             required:
- *               - file
- *               - projectName
- *               - createdBy
+ *                 description: Owner of the project (required if creating a new project).
+ *               consultant:
+ *                 type: string
+ *                 description: Consultant for the project (required if creating a new project).
  *     responses:
  *       201:
- *         description: Project created and Excel file uploaded and data saved successfully.
+ *         description: Project created successfully and data uploaded/updated.
  *         content:
  *           application/json:
  *             schema:
@@ -273,20 +232,33 @@
  *               properties:
  *                 message:
  *                   type: string
- *                   example: "Project created and Excel file uploaded/processed successfully"
+ *                   example: Project created successfully
  *                 data:
  *                   type: object
  *                   properties:
- *                     updated:
- *                       type: number
- *                       example: 5
- *                     inserted:
- *                       type: number
- *                       example: 3
+ *                     project:
+ *                       type: object
+ *                       description: The newly created project details.
+ *                       properties:
+ *                         _id:
+ *                           type: string
+ *                           example: "1234567890abcdef"
+ *                         code:
+ *                           type: string
+ *                           example: "PROJECT001"
+ *                         description:
+ *                           type: string
+ *                           example: "This is a new project description."
+ *                         owner:
+ *                           type: string
+ *                           example: "John Doe"
+ *                         consultant:
+ *                           type: string
+ *                           example: "Jane Smith"
  *       400:
- *         description: No file uploaded, project data missing, or file contains insufficient data.
+ *         description: Bad Request (e.g., invalid input, no file uploaded).
  *       403:
- *         description: Unauthorized user to create a project.
+ *         description: Unauthorized (e.g., not a superAdmin).
  *       500:
  *         description: Internal Server Error.
  */

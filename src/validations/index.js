@@ -28,6 +28,7 @@ exports.createProjectSchema = Joi.object({
   consultant: Joi.string().required(),
 });
 
+
 exports.updateProjectSchema = Joi.object({
   project: Joi.string(),
   code: Joi.string(),
