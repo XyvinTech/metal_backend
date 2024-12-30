@@ -7,6 +7,7 @@ const upload = multer({ dest: "uploads/" });
 
 projectRoute.use(authVerify);
 projectRoute.post("/", upload.single("file"), projectController.createProject);
+projectRoute.post("/test", upload.single("file"), projectController.createProjectHead);
 
 projectRoute
   .route("/single/:id")

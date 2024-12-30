@@ -6,6 +6,9 @@ const fs = require("fs");
 const Log = require("../models/logModel");
 const xlsx = require("xlsx");
 const Alert = require("../models/alertModel");
+const ProjectTest = require("../models/projectModelTest");
+const mongoose = require("mongoose");
+const { snakeCase } = require("lodash");
 
 exports.createProject = async (req, res) => {
   try {
@@ -224,6 +227,93 @@ exports.deleteProject = async (req, res) => {
       return responseHandler(res, 404, "Project not found");
     }
     return responseHandler(res, 200, "Project deleted successfully");
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
+  }
+};
+
+
+exports.createProjectHead = async (req, res) => {
+  try {
+    if (req.user.superAdmin != true) {
+      return responseHandler(
+        res,
+        403,
+        `You are not authorized to create Project`
+      );
+    }
+    const { error } = validations.createProjectSchema.validate(req.body, {
+      abortEarly: true,
+    });
+    if (error) {
+      return responseHandler(res, 400, `Invalid input: ${error.message}`);
+    }
+    if (!req.file) {
+      return responseHandler(res, 400, "No file uploaded");
+    }
+
+    req.body.createdBy = req.userId;
+    const filePath = req.file.path;
+    const workbook = xlsx.readFile(filePath, { cellDates: true });
+    const sheetName = workbook.SheetNames[0];
+
+    
+    const rawHeaders = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], {
+      header: 1,
+    })[0]; 
+
+    if (!rawHeaders || rawHeaders.length === 0) {
+      fs.unlinkSync(filePath);
+      return responseHandler(res, 400, "Excel file has no headers");
+    }
+    req.body.headers = rawHeaders;
+
+
+    const newProject = await ProjectTest.create(req.body);
+
+    if (newProject && newProject.headers) {
+  
+      const mtoSchemaDefinition = {};
+      newProject.headers.forEach((header) => {
+        const fieldName = snakeCase(header); 
+        mtoSchemaDefinition[fieldName] = { type: String };
+      });
+
+
+      mtoSchemaDefinition.project = {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Project",
+        required: true,
+      };
+
+
+      const mtoSchema = new mongoose.Schema(mtoSchemaDefinition, {
+        timestamps: true,
+      });
+
+
+      const mtoCollectionName = snakeCase(newProject.headers.join("_"));
+      const MtoDynamic = mongoose.model(mtoCollectionName, mtoSchema);
+
+      console.log(`Dynamic MTO model created with name: ${mtoCollectionName}`);
+
+
+      const testEntry = await MtoDynamic.create({
+        project: newProject._id,
+        [snakeCase(newProject.headers[0])]: "Sample Value",
+      });
+
+      console.log("Test entry added:", testEntry);
+    }
+
+    if (newProject) {
+      return responseHandler(
+        res,
+        201,
+        "Project created successfully",
+        newProject
+      );
+    }
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
