@@ -285,6 +285,9 @@
  *               project:
  *                 type: string
  *                 description: Project Name (optional, creates a new project if not provided).
+ *               pk:
+ *                 type: string
+ *                 description: Project Name (optional, creates a new project if not provided).
  *               code:
  *                 type: string
  *                 description: Unique project code (required if creating a new project).

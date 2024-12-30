@@ -8,6 +8,8 @@ const projectTestSchema = mongoose.Schema(
     owner: { type: String },
     consultant: { type: String },
     headers: [{ type: String }],
+    collectonName:{type: String},
+    pk: { type: String }
   },
   {
     timestamps: true,

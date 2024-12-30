@@ -26,6 +26,7 @@ exports.createProjectSchema = Joi.object({
   description: Joi.string().required(),
   owner: Joi.string().required(),
   consultant: Joi.string().required(),
+  pk: Joi.string().required(),
 });
 
 

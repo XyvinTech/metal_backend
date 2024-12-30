@@ -9,6 +9,7 @@ const Alert = require("../models/alertModel");
 const ProjectTest = require("../models/projectModelTest");
 const mongoose = require("mongoose");
 const { snakeCase } = require("lodash");
+const { generateUniqueDigit } = require("../utils/generateUniqueDigit");
 
 exports.createProject = async (req, res) => {
   try {
@@ -232,22 +233,24 @@ exports.deleteProject = async (req, res) => {
   }
 };
 
-
 exports.createProjectHead = async (req, res) => {
   try {
-    if (req.user.superAdmin != true) {
+    if (req.user.superAdmin !== true) {
       return responseHandler(
         res,
         403,
         `You are not authorized to create Project`
       );
     }
+
     const { error } = validations.createProjectSchema.validate(req.body, {
       abortEarly: true,
     });
+
     if (error) {
       return responseHandler(res, 400, `Invalid input: ${error.message}`);
     }
+
     if (!req.file) {
       return responseHandler(res, 400, "No file uploaded");
     }
@@ -257,53 +260,95 @@ exports.createProjectHead = async (req, res) => {
     const workbook = xlsx.readFile(filePath, { cellDates: true });
     const sheetName = workbook.SheetNames[0];
 
-    
+    const dataRows = xlsx.utils
+      .sheet_to_json(workbook.Sheets[sheetName], {
+        header: 1,
+      })
+      .slice(1); // Skip the header row
+
     const rawHeaders = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], {
       header: 1,
-    })[0]; 
+    })[0]; // Get the header row
 
     if (!rawHeaders || rawHeaders.length === 0) {
       fs.unlinkSync(filePath);
       return responseHandler(res, 400, "Excel file has no headers");
     }
+
     req.body.headers = rawHeaders;
+    const pk = snakeCase(req.body.pk); 
+    req.body.pk = pk; 
+    const mtoCollectionName = await generateUniqueDigit(6);
+    req.body.collectonName = `mto_${mtoCollectionName}`; 
 
 
+    // Create the project
     const newProject = await ProjectTest.create(req.body);
 
     if (newProject && newProject.headers) {
-  
       const mtoSchemaDefinition = {};
+
+      // We will only convert Date fields, others will remain as String
       newProject.headers.forEach((header) => {
-        const fieldName = snakeCase(header); 
-        mtoSchemaDefinition[fieldName] = { type: String };
+        const fieldName = snakeCase(header); // Convert header to snake_case
+
+        // Assume all fields are strings unless they are recognized as Date
+        mtoSchemaDefinition[fieldName] = { type: String }; // Default type
+
+        // Check if the header corresponds to a known date field
+        if (header.toLowerCase().includes("date")) {
+          mtoSchemaDefinition[fieldName] = { type: Date }; // Override type to Date if header includes "date"
+        }
       });
 
-
+      // Add a reference to the project
       mtoSchemaDefinition.project = {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Project",
         required: true,
       };
 
+      // Generate a unique collection name based on headers
 
+      // Create the schema and model
       const mtoSchema = new mongoose.Schema(mtoSchemaDefinition, {
         timestamps: true,
       });
-
-
-      const mtoCollectionName = snakeCase(newProject.headers.join("_"));
-      const MtoDynamic = mongoose.model(mtoCollectionName, mtoSchema);
+      const MtoDynamic = mongoose.model(`mto_${mtoCollectionName}`, mtoSchema);
 
       console.log(`Dynamic MTO model created with name: ${mtoCollectionName}`);
 
+      // Prepare data for insertion
+      const dataToInsert = dataRows.map((row) => {
+        const rowData = { project: newProject._id };
 
-      const testEntry = await MtoDynamic.create({
-        project: newProject._id,
-        [snakeCase(newProject.headers[0])]: "Sample Value",
+        newProject.headers.forEach((header, index) => {
+          const fieldName = snakeCase(header);
+          let value = row[index];
+
+          // Convert the value to Date if it's a Date column
+          if (mtoSchemaDefinition[fieldName].type === Date && value) {
+            value = new Date(value);
+            if (isNaN(value.getTime())) {
+              value = null; // Invalid date
+            }
+          }
+
+          rowData[fieldName] = value;
+        });
+
+        return rowData;
       });
 
-      console.log("Test entry added:", testEntry);
+      try {
+        const insertedData = await MtoDynamic.insertMany(dataToInsert);
+        console.log(
+          `Inserted ${insertedData.length} rows into ${mtoCollectionName}`
+        );
+      } catch (insertError) {
+        console.error("Error inserting data into dynamic model:", insertError);
+        throw insertError;
+      }
     }
 
     if (newProject) {
