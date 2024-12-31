@@ -80,7 +80,7 @@ exports.updateMto = async (req, res) => {
       return responseHandler(res, 400, `Invalid input: ${error.message}`);
     }
     const project = await Project.findById(req.query.project);
-    const MtoDynamic = await dynamicCollection(project.collectonName);
+    const MtoDynamic = await dynamicCollection(project.collectionName);
     const findMto = await MtoDynamic.findById(req.params.id);
 
     if (!findMto) {
@@ -324,7 +324,7 @@ exports.bulkUpdate = async (req, res) => {
     }));
 
     const MtoDynamic = mongoose.model(
-      project.collectonName,
+      project.collectionName,
       new mongoose.Schema({}, { strict: false })
     );
 
