@@ -48,7 +48,7 @@ exports.createProject = async (req, res) => {
     req.body.dateName = snakeCase(req.body.dateName);
 
     const mtoCollectionName = await generateUniqueDigit(6);
-    req.body.collectonName = `mto_${mtoCollectionName}`;
+    req.body.collectionName = `mto_${mtoCollectionName}`;
 
     const newProject = await Project.create(req.body);
 
