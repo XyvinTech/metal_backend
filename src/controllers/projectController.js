@@ -1,25 +1,14 @@
 const mongoose = require("mongoose");
 const Project = require("../models/projectModel");
-const Mto = require("../models/mtoModel");
 const responseHandler = require("../helpers/responseHandler");
 const validations = require("../validations");
 const fs = require("fs");
-const Log = require("../models/logModel");
 const xlsx = require("xlsx");
-const Alert = require("../models/alertModel");
 const { snakeCase } = require("lodash");
 const { generateUniqueDigit } = require("../utils/generateUniqueDigit");
 
 exports.createProject = async (req, res) => {
   try {
-    if (req.user.superAdmin !== true) {
-      return responseHandler(
-        res,
-        403,
-        `You are not authorized to create Project`
-      );
-    }
-
     const { error } = validations.createProjectSchema.validate(req.body, {
       abortEarly: true,
     });
@@ -53,14 +42,10 @@ exports.createProject = async (req, res) => {
     }
 
     req.body.headers = rawHeaders;
-    const pk = snakeCase(req.body.pk);
-    req.body.pk = pk;
-    const issuedQty = snakeCase(req.body.issuedQty);
-    req.body.issuedQty = issuedQty;
-    const consumedQty = snakeCase(req.body.consumedQty);
-    req.body.consumedQty = consumedQty;
-    const dateName = snakeCase(req.body.dateName);
-    req.body.dateName = dateName;
+    req.body.pk = snakeCase(req.body.pk);
+    req.body.issuedQty = snakeCase(req.body.issuedQty);
+    req.body.consumedQty = snakeCase(req.body.consumedQty);
+    req.body.dateName = snakeCase(req.body.dateName);
 
     const mtoCollectionName = await generateUniqueDigit(6);
     req.body.collectonName = `mto_${mtoCollectionName}`;
@@ -110,16 +95,7 @@ exports.createProject = async (req, res) => {
 
         return rowData;
       });
-
-      try {
-        const insertedData = await MtoDynamic.insertMany(dataToInsert);
-        console.log(
-          `Inserted ${insertedData.length} rows into ${mtoCollectionName}`
-        );
-      } catch (insertError) {
-        console.error("Error inserting data into dynamic model:", insertError);
-        throw insertError;
-      }
+      await MtoDynamic.insertMany(dataToInsert);
     }
 
     if (newProject) {
