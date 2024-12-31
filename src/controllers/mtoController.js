@@ -320,10 +320,7 @@ exports.bulkUpdate = async (req, res) => {
       [project.dateName]: record[project.dateName],
     }));
 
-    const MtoDynamic = mongoose.model(
-      project.collectionName,
-      new mongoose.Schema({}, { strict: false })
-    );
+    const MtoDynamic = await dynamicCollection(project.collectionName);
 
     const existingRecords = await MtoDynamic.find({
       [project.pk]: { $in: data.map((d) => d[project.pk]) },
