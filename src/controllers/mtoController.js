@@ -25,7 +25,9 @@ exports.getMtoById = async (req, res) => {
     const MtoDynamic = await dynamicCollection(project.collectionName);
 
     const sort = { createdAt: -1, _id: 1 };
-    const filter = { project: req.params.id };
+
+    const filter = { project: project._id };
+    
     Object.keys(queryFilters).forEach((key) => {
       if (queryFilters[key] && key !== "pageNo" && key !== "limit") {
         filter[key] = { $regex: queryFilters[key], $options: "i" };
