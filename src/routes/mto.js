@@ -15,7 +15,7 @@ mtoRoute
 
 
 
-mtoRoute.get("/download/:id", mtoController.downloadMtoCsv);
+mtoRoute.get("/download/:projectId", mtoController.downloadMtoCsv);
 mtoRoute.get("/summery/:id", mtoController.fetchSummaryByProjectId);
 
 mtoRoute.get("/summery/download/:id", mtoController.downloadSummaryByProjectId);

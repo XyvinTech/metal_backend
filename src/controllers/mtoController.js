@@ -22,7 +22,7 @@ exports.getMtoById = async (req, res) => {
 
     const skipCount = limit * (page - 1);
 
-    const MtoDynamic = await dynamicCollection(project.collectonName);
+    const MtoDynamic = await dynamicCollection(project.collectionName);
 
     const sort = { createdAt: -1, _id: 1 };
 
@@ -37,17 +37,27 @@ exports.getMtoById = async (req, res) => {
     if (!mto || mto.length === 0) {
       return responseHandler(res, 404, "MTO entries not found");
     }
+    let headers = [];
+
+    project.headers.forEach((header) => {
+      headers.push(snakeCase(header));
+    });
+
     const mappedData = mto.map((mtoItem) => {
       return {
         ...mtoItem,
         project: project.project,
       };
     });
+    const data = {
+      headers,
+      data: mappedData,
+    }
     return responseHandler(
       res,
       200,
       "MTO entries retrieved successfully",
-      mappedData,
+      data,
       totalCount
     );
   } catch (error) {
@@ -120,23 +130,22 @@ exports.downloadMtoCsv = async (req, res) => {
   try {
     const { projectId } = req.params;
 
-    // Debugging logs
-    console.log("Request Params:", req.params);
+  
 
     if (!projectId) {
       return responseHandler(res, 400, "Project ID is required");
     }
 
-    // Fetch the project document
     const project = await Project.findById(projectId);
+    console.log(project); 
+    
     if (!project) {
       return responseHandler(res, 404, "Project not found");
     }
 
-    // Get the dynamic collection based on the collectionName
     const MtoDynamic = await dynamicCollection(project.collectionName);
 
-    // Fetch MTO data from the dynamic collection
+    
     const mtos = await MtoDynamic.find();
 
     if (!mtos || mtos.length === 0) {

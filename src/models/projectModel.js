@@ -9,7 +9,7 @@ const projectSchema = mongoose.Schema(
     owner: { type: String },
     consultant: { type: String },
     headers: [{ type: String }],
-    collectonName:{type: String},
+    collectionName:{type: String},
     pk: { type: String },
     issuedQty: { type: String},
     consumedQty: { type: String},
