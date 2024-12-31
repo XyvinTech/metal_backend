@@ -11,7 +11,6 @@ const xlsx = require("xlsx");
 const { snakeCase } = require("lodash");
 const { dynamicCollection } = require("../helpers/dynamicCollection");
 
-
 exports.getMtoById = async (req, res) => {
   try {
     const { page = 1, limit = 10 } = req.query;
@@ -38,12 +37,19 @@ exports.getMtoById = async (req, res) => {
     if (!mto || mto.length === 0) {
       return responseHandler(res, 404, "MTO entries not found");
     }
-
-    return responseHandler(res, 200, "MTO entries retrieved successfully", {
-      mto,
-      totalCount,
-      projectName: project.project,
+    const mappedData = mto.map((mtoItem) => {
+      return {
+        ...mtoItem,
+        project: project.project,
+      };
     });
+    return responseHandler(
+      res,
+      200,
+      "MTO entries retrieved successfully",
+      mappedData,
+      totalCount
+    );
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
@@ -110,8 +116,6 @@ exports.updateMto = async (req, res) => {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
-
-
 
 exports.downloadMtoCsv = async (req, res) => {
   try {

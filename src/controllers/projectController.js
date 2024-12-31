@@ -10,8 +10,7 @@ const Alert = require("../models/alertModel");
 const { snakeCase } = require("lodash");
 const { generateUniqueDigit } = require("../utils/generateUniqueDigit");
 
-
-exports.createProject= async (req, res) => {
+exports.createProject = async (req, res) => {
   try {
     if (req.user.superAdmin !== true) {
       return responseHandler(
@@ -42,11 +41,11 @@ exports.createProject= async (req, res) => {
       .sheet_to_json(workbook.Sheets[sheetName], {
         header: 1,
       })
-      .slice(1); // Skip the header row
+      .slice(1);
 
     const rawHeaders = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], {
       header: 1,
-    })[0]; // Get the header row
+    })[0];
 
     if (!rawHeaders || rawHeaders.length === 0) {
       fs.unlinkSync(filePath);
@@ -54,54 +53,43 @@ exports.createProject= async (req, res) => {
     }
 
     req.body.headers = rawHeaders;
-    const pk = snakeCase(req.body.pk); 
-    req.body.pk = pk; 
-    const issuedQty = snakeCase(req.body.issuedQty); 
-    req.body.issuedQty = issuedQty; 
-    const consumedQty = snakeCase(req.body.consumedQty); 
-    req.body.consumedQty = consumedQty; 
-    const dateName = snakeCase(req.body.dateName); 
-    req.body.dateName = dateName; 
+    const pk = snakeCase(req.body.pk);
+    req.body.pk = pk;
+    const issuedQty = snakeCase(req.body.issuedQty);
+    req.body.issuedQty = issuedQty;
+    const consumedQty = snakeCase(req.body.consumedQty);
+    req.body.consumedQty = consumedQty;
+    const dateName = snakeCase(req.body.dateName);
+    req.body.dateName = dateName;
 
     const mtoCollectionName = await generateUniqueDigit(6);
-    req.body.collectonName = `mto_${mtoCollectionName}`; 
+    req.body.collectonName = `mto_${mtoCollectionName}`;
 
-
-    // Create the project
     const newProject = await Project.create(req.body);
 
     if (newProject && newProject.headers) {
       const mtoSchemaDefinition = {};
 
-      // We will only convert Date fields, others will remain as String
       newProject.headers.forEach((header) => {
-        const fieldName = snakeCase(header); // Convert header to snake_case
+        const fieldName = snakeCase(header);
 
-        // Assume all fields are strings unless they are recognized as Date
-        mtoSchemaDefinition[fieldName] = { type: String }; // Default type
+        mtoSchemaDefinition[fieldName] = { type: String };
 
-        // Check if the header corresponds to a known date field
         if (header.toLowerCase().includes("date")) {
-          mtoSchemaDefinition[fieldName] = { type: Date }; // Override type to Date if header includes "date"
+          mtoSchemaDefinition[fieldName] = { type: Date };
         }
       });
 
-      // Add a reference to the project
       mtoSchemaDefinition.project = {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Project",
         required: true,
       };
 
-     
-
-   
       const mtoSchema = new mongoose.Schema(mtoSchemaDefinition, {
         timestamps: true,
       });
       const MtoDynamic = mongoose.model(`mto_${mtoCollectionName}`, mtoSchema);
-
-     
 
       const dataToInsert = dataRows.map((row) => {
         const rowData = { project: newProject._id };
@@ -113,7 +101,7 @@ exports.createProject= async (req, res) => {
           if (mtoSchemaDefinition[fieldName].type === Date && value) {
             value = new Date(value);
             if (isNaN(value.getTime())) {
-              value = null; 
+              value = null;
             }
           }
 
@@ -146,7 +134,6 @@ exports.createProject= async (req, res) => {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
-
 
 exports.getProjects = async (req, res) => {
   try {
