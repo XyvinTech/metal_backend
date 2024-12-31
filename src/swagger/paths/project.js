@@ -5,6 +5,113 @@
  *     description: Project related endpoints
  */
 
+
+
+/**
+ * @swagger
+ * /project:
+ *   post:
+ *     summary: Bulk upload data and create a project
+ *     description: Upload an Excel file containing data for bulk creation of a project. Extracts headers from the file and dynamically creates a schema for data storage.
+ *     tags:
+ *       - Projects
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: Excel file to upload
+ *               project:
+ *                 type: string
+ *                 description: Project Name (optional, creates a new project if not provided).
+ *               pk:
+ *                 type: string
+ *                 description: Project Name (optional, creates a new project if not provided).
+ *               code:
+ *                 type: string
+ *                 description: Unique project code (required if creating a new project).
+ *               description:
+ *                 type: string
+ *                 description: Detailed description of the project (required if creating a new project).
+ *               owner:
+ *                 type: string
+ *                 description: Owner of the project (required if creating a new project).
+ *               consultant:
+ *                 type: string
+ *                 description: Consultant for the project (required if creating a new project).
+ *               issuedQty:
+ *                 type: string
+ *                 description: Consultant for the project (required if creating a new project).
+ *               consumedQty:
+ *                 type: string
+ *                 description: Consultant for the project (required if creating a new project).
+ *               dateName:
+ *                 type: string
+ *                 description: Consultant for the project (required if creating a new project).
+ *     responses:
+ *       201:
+ *         description: Project created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: integer
+ *                   example: 201
+ *                 message:
+ *                   type: string
+ *                   example: Project created successfully
+ *                 data:
+ *                   type: object
+ *                   description: Details of the created project
+ *       400:
+ *         description: Invalid input or file missing
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: integer
+ *                   example: 400
+ *                 message:
+ *                   type: string
+ *                   example: Invalid input
+ *       403:
+ *         description: Unauthorized action
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: integer
+ *                   example: 403
+ *                 message:
+ *                   type: string
+ *                   example: You are not authorized to create Project
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: integer
+ *                   example: 500
+ *                 message:
+ *                   type: string
+ *                   example: "Internal Server Error: [Error message]"
+ */
+
+
 /**
  * @swagger
  * /project/list:
@@ -261,108 +368,4 @@
  *         description: Unauthorized (e.g., not a superAdmin).
  *       500:
  *         description: Internal Server Error.
- */
-
-/**
- * @swagger
- * /project/test:
- *   post:
- *     summary: Bulk upload data and create a project
- *     description: Upload an Excel file containing data for bulk creation of a project. Extracts headers from the file and dynamically creates a schema for data storage.
- *     tags:
- *       - Projects
- *     requestBody:
- *       required: true
- *       content:
- *         multipart/form-data:
- *           schema:
- *             type: object
- *             properties:
- *               file:
- *                 type: string
- *                 format: binary
- *                 description: Excel file to upload
- *               project:
- *                 type: string
- *                 description: Project Name (optional, creates a new project if not provided).
- *               pk:
- *                 type: string
- *                 description: Project Name (optional, creates a new project if not provided).
- *               code:
- *                 type: string
- *                 description: Unique project code (required if creating a new project).
- *               description:
- *                 type: string
- *                 description: Detailed description of the project (required if creating a new project).
- *               owner:
- *                 type: string
- *                 description: Owner of the project (required if creating a new project).
- *               consultant:
- *                 type: string
- *                 description: Consultant for the project (required if creating a new project).
- *               issuedQty:
- *                 type: string
- *                 description: Consultant for the project (required if creating a new project).
- *               consumedQty:
- *                 type: string
- *                 description: Consultant for the project (required if creating a new project).
- *               dateName:
- *                 type: string
- *                 description: Consultant for the project (required if creating a new project).
- *     responses:
- *       201:
- *         description: Project created successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: integer
- *                   example: 201
- *                 message:
- *                   type: string
- *                   example: Project created successfully
- *                 data:
- *                   type: object
- *                   description: Details of the created project
- *       400:
- *         description: Invalid input or file missing
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: integer
- *                   example: 400
- *                 message:
- *                   type: string
- *                   example: Invalid input
- *       403:
- *         description: Unauthorized action
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: integer
- *                   example: 403
- *                 message:
- *                   type: string
- *                   example: You are not authorized to create Project
- *       500:
- *         description: Internal server error
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: integer
- *                   example: 500
- *                 message:
- *                   type: string
- *                   example: "Internal Server Error: [Error message]"
  */

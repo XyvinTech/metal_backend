@@ -9,46 +9,13 @@ const Alert = require("../models/alertModel");
 const Project = require("../models/projectModel");
 const xlsx = require("xlsx");
 const { snakeCase } = require("lodash");
+const { dynamicCollection } = require("../helpers/dynamicCollection");
 
-exports.createMto = async (req, res) => {
-  try {
-    const { error } = validations.createMtoSchema.validate(req.body, {
-      abortEarly: true,
-    });
-    if (error) {
-      return responseHandler(res, 400, `Invalid input: ${error.message}`);
-    }
-    req.body.createdBy = req.userId;
-    const newMto = await Mto.create(req.body);
-    if (newMto) {
-      return responseHandler(
-        res,
-        201,
-        "MTO entry created successfully",
-        newMto
-      );
-    }
-  } catch (error) {
-    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
-  }
-};
-
-exports.getMtos = async (req, res) => {
-  try {
-    const mtos = await Mto.find();
-    return responseHandler(res, 200, "MTO entries retrieved successfully", {
-      mtos,
-    });
-  } catch (error) {
-    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
-  }
-};
 
 exports.getMtoById = async (req, res) => {
   try {
     const { page = 1, limit = 10 } = req.query;
 
-    // Find the project by ID
     const project = await Project.findById(req.params.id);
     if (!project) {
       return responseHandler(res, 404, "Project not found");
@@ -56,15 +23,10 @@ exports.getMtoById = async (req, res) => {
 
     const skipCount = limit * (page - 1);
 
-    // Dynamically access the MTO collection using the `collectonName`
-    const MtoDynamic = mongoose.model(
-      project.collectonName,
-      new mongoose.Schema({}, { strict: false })
-    );
+    const MtoDynamic = await dynamicCollection(project.collectonName);
 
     const sort = { createdAt: -1, _id: 1 };
 
-    // Retrieve data from the dynamically referenced collection
     const mto = await MtoDynamic.find({})
       .skip(skipCount)
       .limit(Number(limit))
@@ -96,10 +58,7 @@ exports.updateMto = async (req, res) => {
       return responseHandler(res, 400, `Invalid input: ${error.message}`);
     }
     const project = await Project.findById(req.query.project);
-    const MtoDynamic = mongoose.model(
-      project.collectonName,
-      new mongoose.Schema({}, { strict: false })
-    );
+    const MtoDynamic = await dynamicCollection(project.collectonName);
     const findMto = await MtoDynamic.findById(req.params.id);
 
     if (!findMto) {
@@ -152,17 +111,7 @@ exports.updateMto = async (req, res) => {
   }
 };
 
-exports.deleteMto = async (req, res) => {
-  try {
-    const mto = await Mto.findByIdAndDelete(req.params.id);
-    if (!mto) {
-      return responseHandler(res, 404, "MTO entry not found");
-    }
-    return responseHandler(res, 200, "MTO entry deleted successfully");
-  } catch (error) {
-    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
-  }
-};
+
 
 exports.downloadMtoCsv = async (req, res) => {
   try {
@@ -334,7 +283,6 @@ exports.bulkUpdate = async (req, res) => {
       return responseHandler(res, 404, "Project not found");
     }
 
-    // Dynamically map headers from project
     const headerMapping = project.headers.map((header) => snakeCase(header));
 
     let data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], {
@@ -351,7 +299,6 @@ exports.bulkUpdate = async (req, res) => {
       );
     }
 
-    // Remove header rows
     data = data.slice(2).map((record) => ({
       ...record,
       project: project._id,
@@ -365,7 +312,6 @@ exports.bulkUpdate = async (req, res) => {
       new mongoose.Schema({}, { strict: false })
     );
 
-    // Fetch existing records
     const existingRecords = await MtoDynamic.find({
       [project.pk]: { $in: data.map((d) => d[project.pk]) },
       project: project._id,
@@ -375,15 +321,12 @@ exports.bulkUpdate = async (req, res) => {
     const recordsToInsert = [];
     const alerts = [];
 
-
     for (const newRecord of data) {
-    
       const oldRecord = existingRecords.find(
         (existing) => existing[project.pk] === newRecord[project.pk]
       );
-    
+
       if (oldRecord) {
-        // Update logic
         if (oldRecord[project.issuedQty] < newRecord[project.consumedQty]) {
           alerts.push({
             project: oldRecord.project,
@@ -414,7 +357,6 @@ exports.bulkUpdate = async (req, res) => {
 
         await MtoDynamic.findByIdAndUpdate(oldRecord._id, newRecord);
       } else {
-        // Insert logic
         recordsToInsert.push(newRecord);
       }
     }
