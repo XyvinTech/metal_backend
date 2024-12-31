@@ -237,20 +237,33 @@
 
 /**
  * @swagger
- * /mto/download:
+ * /mto/download/{projectId}:
  *   get:
  *     summary: Download MTO data as CSV
- *     description: Exports all MTO entries as a CSV file. 
+ *     description: Exports all MTO entries from the specified project's collection as a CSV file.
  *     tags:
  *       - MTO
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         description: The ID of the project to fetch the MTO data from.
+ *         schema:
+ *           type: string
  *     responses:
  *       200:
  *         description: CSV file downloaded successfully
+ *         content:
+ *           application/octet-stream:
+ *             schema:
+ *               type: string
+ *               format: binary
  *       404:
- *         description: No MTO data found
+ *         description: Project not found or no MTO data found
  *       500:
  *         description: Internal Server Error
  */
+
 
 
 /**

@@ -116,10 +116,28 @@ exports.updateMto = async (req, res) => {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
-
 exports.downloadMtoCsv = async (req, res) => {
   try {
-    const mtos = await Mto.find();
+    const { projectId } = req.params;
+
+    // Debugging logs
+    console.log("Request Params:", req.params);
+
+    if (!projectId) {
+      return responseHandler(res, 400, "Project ID is required");
+    }
+
+    // Fetch the project document
+    const project = await Project.findById(projectId);
+    if (!project) {
+      return responseHandler(res, 404, "Project not found");
+    }
+
+    // Get the dynamic collection based on the collectionName
+    const MtoDynamic = await dynamicCollection(project.collectionName);
+
+    // Fetch MTO data from the dynamic collection
+    const mtos = await MtoDynamic.find();
 
     if (!mtos || mtos.length === 0) {
       return responseHandler(res, 404, "No MTO data found");
@@ -163,15 +181,18 @@ exports.downloadMtoCsv = async (req, res) => {
 
     res.download(filePath, "mto_data.csv", (err) => {
       if (err) {
+        console.error("File Download Error:", err.message);
         return responseHandler(res, 500, `File Download Error: ${err.message}`);
       }
 
-      fs.unlinkSync(filePath);
+      fs.unlinkSync(filePath); // Delete the file after download
     });
   } catch (error) {
+    console.error("Internal Server Error:", error.message);
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
+
 
 exports.fetchSummaryByProjectId = async (req, res) => {
   try {
