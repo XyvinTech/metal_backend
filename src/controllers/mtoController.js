@@ -13,7 +13,7 @@ const { dynamicCollection } = require("../helpers/dynamicCollection");
 
 exports.getMtoById = async (req, res) => {
   try {
-    const { page = 1, limit = 10 } = req.query;
+    const { page = 1, limit = 10, ...queryFilters } = req.query;
 
     const project = await Project.findById(req.params.id);
     if (!project) {
@@ -25,14 +25,20 @@ exports.getMtoById = async (req, res) => {
     const MtoDynamic = await dynamicCollection(project.collectionName);
 
     const sort = { createdAt: -1, _id: 1 };
+    const filter = { project: req.params.id };
+    Object.keys(queryFilters).forEach((key) => {
+      if (queryFilters[key] && key !== "pageNo" && key !== "limit") {
+        filter[key] = { $regex: queryFilters[key], $options: "i" };
+      }
+    });
 
-    const mto = await MtoDynamic.find({})
+    const mto = await MtoDynamic.find(filter)
       .skip(skipCount)
       .limit(Number(limit))
       .sort(sort)
       .lean();
 
-    const totalCount = await MtoDynamic.countDocuments();
+    const totalCount = await MtoDynamic.countDocuments(filter);
 
     if (!mto || mto.length === 0) {
       return responseHandler(res, 404, "MTO entries not found");
@@ -52,7 +58,7 @@ exports.getMtoById = async (req, res) => {
     const data = {
       headers,
       data: mappedData,
-    }
+    };
     return responseHandler(
       res,
       200,
@@ -130,53 +136,30 @@ exports.downloadMtoCsv = async (req, res) => {
   try {
     const { projectId } = req.params;
 
-  
-
     if (!projectId) {
       return responseHandler(res, 400, "Project ID is required");
     }
 
     const project = await Project.findById(projectId);
-    console.log(project); 
-    
+    console.log(project);
+
     if (!project) {
       return responseHandler(res, 404, "Project not found");
     }
 
     const MtoDynamic = await dynamicCollection(project.collectionName);
 
-    
     const mtos = await MtoDynamic.find();
 
     if (!mtos || mtos.length === 0) {
       return responseHandler(res, 404, "No MTO data found");
     }
 
-    const fields = [
-      "unit",
-      "lineNo",
-      "lineLocation",
-      "areaLineSheetIdent",
-      "area",
-      "line",
-      "sheet",
-      "identCode",
-      "uom",
-      "size",
-      "sizeTwo",
-      "specCode",
-      "shortCode",
-      "cat",
-      "shortDesc",
-      "mtoRev",
-      "sf",
-      "scopeQty",
-      "issuedQtyAss",
-      "issuedDate",
-      "balToIssue",
-      "consumedQty",
-      "balanceStock",
-    ];
+    let fields = [];
+    project.headers.forEach((header) => {
+      fields.push(snakeCase(header));
+    });
+
     const json2csvParser = new Parser({ fields });
     const csv = json2csvParser.parse(mtos);
 
@@ -201,7 +184,6 @@ exports.downloadMtoCsv = async (req, res) => {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
-
 
 exports.fetchSummaryByProjectId = async (req, res) => {
   try {

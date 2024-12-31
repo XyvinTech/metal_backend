@@ -98,45 +98,6 @@
  *       500:
  *         description: Internal Server Error
  */
-/**
- * @swagger
- * /mto/list:
- *   get:
- *     summary: Get all MTO entries
- *     description: Retrieves a list of all MTO entries for a specific project dynamically based on its collection name.
- *     tags:
- *       - MTO
- *     parameters:
- *       - in: query
- *         name: projectId
- *         schema:
- *           type: string
- *         required: true
- *         description: The ID of the project to fetch MTO entries for.
- *       - in: query
- *         name: page
- *         schema:
- *           type: integer
- *           default: 1
- *         required: false
- *         description: Page number for pagination.
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           default: 10
- *         required: false
- *         description: Number of entries to retrieve per page.
- *     responses:
- *       200:
- *         description: MTO entries retrieved successfully
- *       400:
- *         description: Invalid input or missing parameters
- *       404:
- *         description: Project or collection not found
- *       500:
- *         description: Internal Server Error
- */
 
 
 /**
