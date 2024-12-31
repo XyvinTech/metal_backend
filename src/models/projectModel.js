@@ -1,3 +1,4 @@
+const { date } = require("joi");
 const mongoose = require("mongoose");
 
 const projectSchema = mongoose.Schema(
@@ -7,6 +8,12 @@ const projectSchema = mongoose.Schema(
     description: { type: String },
     owner: { type: String },
     consultant: { type: String },
+    headers: [{ type: String }],
+    collectonName:{type: String},
+    pk: { type: String },
+    issuedQty: { type: String},
+    consumedQty: { type: String},
+    dateName: {type :String },
   },
   {
     timestamps: true,

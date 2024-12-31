@@ -1,4 +1,4 @@
-const Project = require("../models/projectModelTest");
+const Project = require("../models/projectModel");
 
 exports.generateUniqueDigit = async (length) => {
   function generateRandom6Digits() {

@@ -27,6 +27,11 @@ exports.createProjectSchema = Joi.object({
   owner: Joi.string().required(),
   consultant: Joi.string().required(),
   pk: Joi.string().required(),
+  issuedQty: Joi.string().required(),
+  consumedQty: Joi.string().required(),
+  dateName: Joi.string().required(),
+
+
 });
 
 
@@ -66,7 +71,7 @@ exports.createMtoSchema = Joi.object({
 });
 
 exports.updateMtoSchema = Joi.object({
-  issuedQtyAss: Joi.number(),
+  issuedQty: Joi.number(),
   issuedDate: Joi.date(),
   consumedQty: Joi.number()
 });

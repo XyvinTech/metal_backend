@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Mto = require("../models/mtoModel");
 const responseHandler = require("../helpers/responseHandler");
 const validations = require("../validations");
@@ -5,6 +6,10 @@ const { Parser } = require("json2csv");
 const fs = require("fs");
 const Log = require("../models/logModel");
 const Alert = require("../models/alertModel");
+const Project = require("../models/projectModel");
+const xlsx = require("xlsx");
+const { snakeCase } = require("lodash");
+
 exports.createMto = async (req, res) => {
   try {
     const { error } = validations.createMtoSchema.validate(req.body, {
@@ -31,65 +36,51 @@ exports.createMto = async (req, res) => {
 exports.getMtos = async (req, res) => {
   try {
     const mtos = await Mto.find();
-    return responseHandler(
-      res,
-      200,
-      "MTO entries retrieved successfully",
-      mtos
-    );
+    return responseHandler(res, 200, "MTO entries retrieved successfully", {
+      mtos,
+    });
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
+
 exports.getMtoById = async (req, res) => {
   try {
-    const { page = 1, limit = 10, ...queryFilters } = req.query;
+    const { page = 1, limit = 10 } = req.query;
 
-    const skipCount = 10 * (page - 1);
-    const filter = { project: req.params.id };
+    // Find the project by ID
+    const project = await Project.findById(req.params.id);
+    if (!project) {
+      return responseHandler(res, 404, "Project not found");
+    }
 
-    Object.keys(queryFilters).forEach((key) => {
-      if (queryFilters[key] && key !== "pageNo" && key !== "limit") {
-        const isNumberField = [
-          "sheet",
-          "size",
-          "sizeTwo",
-          "scopeQty",
-          "issuedQtyAss",
-          "balToIssue",
-          "consumedQty",
-          "balanceStock",
-        ].includes(key);
+    const skipCount = limit * (page - 1);
 
-        if (isNumberField) {
-          filter[key] = Number(queryFilters[key]);
-        } else {
-          filter[key] = { $regex: queryFilters[key], $options: "i" };
-        }
-      }
-    });
+    // Dynamically access the MTO collection using the `collectonName`
+    const MtoDynamic = mongoose.model(
+      project.collectonName,
+      new mongoose.Schema({}, { strict: false })
+    );
 
     const sort = { createdAt: -1, _id: 1 };
 
-    const mto = await Mto.find(filter)
+    // Retrieve data from the dynamically referenced collection
+    const mto = await MtoDynamic.find({})
       .skip(skipCount)
-      .limit(limit)
+      .limit(Number(limit))
       .sort(sort)
-      .populate("project", "project")
       .lean();
 
-    const totalCount = await Mto.countDocuments(filter);
+    const totalCount = await MtoDynamic.countDocuments();
 
     if (!mto || mto.length === 0) {
-      return responseHandler(res, 404, "MTO entry not found");
+      return responseHandler(res, 404, "MTO entries not found");
     }
 
-    const projectName = mto[0].project?.project || "";
-
-    return responseHandler(res, 200, "MTO entry retrieved successfully", {
+    return responseHandler(res, 200, "MTO entries retrieved successfully", {
       mto,
       totalCount,
-      projectName,
+      projectName: project.project,
     });
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
@@ -104,37 +95,50 @@ exports.updateMto = async (req, res) => {
     if (error) {
       return responseHandler(res, 400, `Invalid input: ${error.message}`);
     }
+    const project = await Project.findById(req.query.project);
+    const MtoDynamic = mongoose.model(
+      project.collectonName,
+      new mongoose.Schema({}, { strict: false })
+    );
+    const findMto = await MtoDynamic.findById(req.params.id);
 
-    const findMto = await Mto.findById(req.params.id);
     if (!findMto) {
       return responseHandler(res, 404, "MTO entry not found");
     }
-    await Log.create({
-      admin: req.userId,
-      description: "Single update",
-      oldIssuedQtyAss: findMto.issuedQtyAss,
-      oldIssuedDate: findMto.issuedDate,
-      oldConsumedQty: findMto.consumedQty,
-      newIssuedQtyAss: req.body.issuedQtyAss,
-      newIssuedDate: req.body.issuedDate,
-      newConsumedQty: req.body.consumedQty,
-      project: findMto.project,
-      areaLineSheetIdent: findMto.areaLineSheetIdent,
-      host: req.headers.host,
-      agent: req.headers["user-agent"],
-    });
 
-    if (findMto.issuedQtyAss < req.body.consumedQty) {
+    const qtyCheck = project.issuedQty;
+
+    if (findMto[qtyCheck] < req.body.consumedQty) {
       await Alert.create({
         project: findMto.project,
         mto: findMto._id,
-        areaLineSheetIdent: findMto.areaLineSheetIdent,
-        issuedQtyAss: findMto.issuedQtyAss,
+        issuedQty: findMto[qtyCheck],
         consumedQty: req.body.consumedQty,
       });
     }
 
-    const mto = await Mto.findByIdAndUpdate(req.params.id, req.body, {
+    const data = {
+      [project.consumedQty]: req.body.consumedQty,
+      [project.issuedQty]: req.body.issuedQty,
+      [project.dateName]: req.body.issuedDate,
+    };
+
+    const oldPayload = {
+      [project.consumedQty]: findMto[project.consumedQty],
+      [project.issuedQty]: findMto[project.issuedQty],
+      [project.dateName]: findMto[project.dateName],
+    };
+    await Log.create({
+      admin: req.userId,
+      description: "Single update",
+      project: findMto.project,
+      oldPayload: oldPayload,
+      newPayload: data,
+      host: req.headers.host,
+      agent: req.headers["user-agent"],
+    });
+
+    const mto = await MtoDynamic.findByIdAndUpdate(req.params.id, data, {
       new: true,
       runValidators: true,
     });
@@ -307,13 +311,13 @@ exports.downloadSummaryByProjectId = async (req, res) => {
   }
 };
 
-exports.bulkUpload = async (req, res) => {
+exports.bulkUpdate = async (req, res) => {
   try {
     if (!req.file) {
       return responseHandler(res, 400, "No file uploaded");
     }
-    const { project } = req.body;
 
+    let { project } = req.body;
     if (!project) {
       fs.unlinkSync(req.file.path);
       return responseHandler(res, 400, "Project ID is required");
@@ -322,33 +326,19 @@ exports.bulkUpload = async (req, res) => {
     const filePath = req.file.path;
     const workbook = xlsx.readFile(filePath, { cellDates: true });
     const sheetName = workbook.SheetNames[0];
+    const myProject = await Project.findById(project);
+    project = myProject;
+
+    if (!project) {
+      fs.unlinkSync(filePath);
+      return responseHandler(res, 404, "Project not found");
+    }
+
+    // Dynamically map headers from project
+    const headerMapping = project.headers.map((header) => snakeCase(header));
 
     let data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], {
-      header: [
-        "unit",
-        "lineNo",
-        "lineLocation",
-        "areaLineSheetIdent",
-        "area",
-        "line",
-        "sheet",
-        "identCode",
-        "uom",
-        "size",
-        "sizeTwo",
-        "specCode",
-        "shortCode",
-        "cat",
-        "shortDesc",
-        "mtoRev",
-        "sf",
-        "scopeQty",
-        "issuedQtyAss",
-        "issuedDate",
-        "balToIssue",
-        "consumedQty",
-        "balanceStock",
-      ],
+      header: headerMapping,
       defval: "",
     });
 
@@ -361,80 +351,84 @@ exports.bulkUpload = async (req, res) => {
       );
     }
 
+    // Remove header rows
     data = data.slice(2).map((record) => ({
       ...record,
-      project,
-      sheet: Number(record.sheet) || 0,
-      size: Number(record.size) || 0,
-      sizeTwo: Number(record.sizeTwo) || 0,
-      scopeQty: Number(record.scopeQty) || 0,
-      issuedQtyAss: Number(record.issuedQtyAss) || 0,
-      issuedDate: record.issuedDate,
-      balToIssue: Number(record.balToIssue) || 0,
-      consumedQty: Number(record.consumedQty) || 0,
-      balanceStock: Number(record.balanceStock) || 0,
+      project: project._id,
+      [project.consumedQty]: Number(record[project.consumedQty]) || 0,
+      [project.issuedQty]: Number(record[project.issuedQty]) || 0,
+      [project.dateName]: record[project.dateName],
     }));
 
-   
-    for (const record of data) {
-      const findMto = await Mto.findOne({
-        areaLineSheetIdent: record.areaLineSheetIdent,
-        project,
-      });
+    const MtoDynamic = mongoose.model(
+      project.collectonName,
+      new mongoose.Schema({}, { strict: false })
+    );
 
-      if (findMto && findMto.issuedQtyAss < record.consumedQty) {
-        await Alert.create({
-          project: findMto.project,
-          mto: findMto._id,
-          areaLineSheetIdent: findMto.areaLineSheetIdent,
-          issuedQtyAss: findMto.issuedQtyAss,
-          consumedQty: record.consumedQty,
-        });
-      }
-    }
-
-    const existingRecords = await Mto.find({
-      areaLineSheetIdent: { $in: data.map((d) => d.areaLineSheetIdent) },
-      project,
+    // Fetch existing records
+    const existingRecords = await MtoDynamic.find({
+      [project.pk]: { $in: data.map((d) => d[project.pk]) },
+      project: project._id,
     });
 
     const logs = [];
     const recordsToInsert = [];
+    const alerts = [];
+
 
     for (const newRecord of data) {
+    
       const oldRecord = existingRecords.find(
-        (existing) =>
-          existing.areaLineSheetIdent === newRecord.areaLineSheetIdent
+        (existing) => existing[project.pk] === newRecord[project.pk]
       );
-
+    
       if (oldRecord) {
+        // Update logic
+        if (oldRecord[project.issuedQty] < newRecord[project.consumedQty]) {
+          alerts.push({
+            project: oldRecord.project,
+            mto: oldRecord._id,
+            [project.pk]: oldRecord[project.pk],
+            [project.issuedQty]: oldRecord[project.issuedQty],
+            [project.consumedQty]: newRecord[project.consumedQty],
+          });
+        }
+
         logs.push({
           admin: req.userId,
           description: "Bulk update",
-          oldIssuedQtyAss: oldRecord.issuedQtyAss,
-          oldIssuedDate: oldRecord.issuedDate,
-          oldConsumedQty: oldRecord.consumedQty,
-          newIssuedQtyAss: newRecord.issuedQtyAss,
-          newIssuedDate: newRecord.issuedDate,
-          newConsumedQty: newRecord.consumedQty,
           project: oldRecord.project,
-          areaLineSheetIdent: oldRecord.areaLineSheetIdent,
+          oldPayload: {
+            [project.consumedQty]: oldRecord[project.consumedQty],
+            [project.issuedQty]: oldRecord[project.issuedQty],
+            [project.dateName]: oldRecord[project.dateName],
+          },
+          newPayload: {
+            [project.consumedQty]: newRecord[project.consumedQty],
+            [project.issuedQty]: newRecord[project.issuedQty],
+            [project.dateName]: newRecord[project.dateName],
+          },
           host: req.headers.host,
           agent: req.headers["user-agent"],
         });
 
-        await Mto.findByIdAndUpdate(oldRecord._id, newRecord);
+        await MtoDynamic.findByIdAndUpdate(oldRecord._id, newRecord);
       } else {
+        // Insert logic
         recordsToInsert.push(newRecord);
       }
     }
 
     if (recordsToInsert.length > 0) {
-      await Mto.insertMany(recordsToInsert);
+      await MtoDynamic.insertMany(recordsToInsert);
     }
 
     if (logs.length > 0) {
       await Log.insertMany(logs);
+    }
+
+    if (alerts.length > 0) {
+      await Alert.insertMany(alerts);
     }
 
     fs.unlinkSync(filePath);
@@ -443,7 +437,10 @@ exports.bulkUpload = async (req, res) => {
       res,
       201,
       "Excel file uploaded and data saved/updated successfully",
-      { updated: logs.length, inserted: recordsToInsert.length }
+      {
+        updated: logs.length,
+        inserted: recordsToInsert.length,
+      }
     );
   } catch (error) {
     if (fs.existsSync(req.file?.path)) {

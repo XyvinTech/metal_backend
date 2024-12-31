@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Project = require("../models/projectModel");
 const Mto = require("../models/mtoModel");
 const responseHandler = require("../helpers/responseHandler");
@@ -6,8 +7,6 @@ const fs = require("fs");
 const Log = require("../models/logModel");
 const xlsx = require("xlsx");
 const Alert = require("../models/alertModel");
-const ProjectTest = require("../models/projectModelTest");
-const mongoose = require("mongoose");
 const { snakeCase } = require("lodash");
 const { generateUniqueDigit } = require("../utils/generateUniqueDigit");
 
@@ -278,12 +277,19 @@ exports.createProjectHead = async (req, res) => {
     req.body.headers = rawHeaders;
     const pk = snakeCase(req.body.pk); 
     req.body.pk = pk; 
+    const issuedQty = snakeCase(req.body.issuedQty); 
+    req.body.issuedQty = issuedQty; 
+    const consumedQty = snakeCase(req.body.consumedQty); 
+    req.body.consumedQty = consumedQty; 
+    const dateName = snakeCase(req.body.dateName); 
+    req.body.dateName = dateName; 
+
     const mtoCollectionName = await generateUniqueDigit(6);
     req.body.collectonName = `mto_${mtoCollectionName}`; 
 
 
     // Create the project
-    const newProject = await ProjectTest.create(req.body);
+    const newProject = await Project.create(req.body);
 
     if (newProject && newProject.headers) {
       const mtoSchemaDefinition = {};
@@ -308,7 +314,7 @@ exports.createProjectHead = async (req, res) => {
         required: true,
       };
 
-      // Generate a unique collection name based on headers
+     
 
       // Create the schema and model
       const mtoSchema = new mongoose.Schema(mtoSchemaDefinition, {

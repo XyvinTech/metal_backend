@@ -300,6 +300,15 @@
  *               consultant:
  *                 type: string
  *                 description: Consultant for the project (required if creating a new project).
+ *               issuedQty:
+ *                 type: string
+ *                 description: Consultant for the project (required if creating a new project).
+ *               consumedQty:
+ *                 type: string
+ *                 description: Consultant for the project (required if creating a new project).
+ *               dateName:
+ *                 type: string
+ *                 description: Consultant for the project (required if creating a new project).
  *     responses:
  *       201:
  *         description: Project created successfully
