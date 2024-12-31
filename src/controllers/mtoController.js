@@ -13,21 +13,21 @@ const { dynamicCollection } = require("../helpers/dynamicCollection");
 
 exports.getMtoById = async (req, res) => {
   try {
-    const { page = 1, limit = 10, ...queryFilters } = req.query;
+    const { pageNo = 1, limit = 10, ...queryFilters } = req.query;
 
     const project = await Project.findById(req.params.id);
     if (!project) {
       return responseHandler(res, 404, "Project not found");
     }
 
-    const skipCount = limit * (page - 1);
+    const skipCount = limit * (pageNo - 1);
 
     const MtoDynamic = await dynamicCollection(project.collectionName);
 
     const sort = { createdAt: -1, _id: 1 };
 
     const filter = { project: project._id };
-    
+
     Object.keys(queryFilters).forEach((key) => {
       if (queryFilters[key] && key !== "pageNo" && key !== "limit") {
         filter[key] = { $regex: queryFilters[key], $options: "i" };
@@ -51,15 +51,10 @@ exports.getMtoById = async (req, res) => {
       headers.push(snakeCase(header));
     });
 
-    const mappedData = mto.map((mtoItem) => {
-      return {
-        ...mtoItem,
-        project: project.project,
-      };
-    });
     const data = {
       headers,
-      data: mappedData,
+      data: mto,
+      project: project.project,
     };
     return responseHandler(
       res,
