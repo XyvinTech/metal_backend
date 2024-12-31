@@ -312,7 +312,7 @@ exports.bulkUpdate = async (req, res) => {
       );
     }
 
-    data = data.slice(2).map((record) => ({
+    data = data.slice(1).map((record) => ({
       ...record,
       project: project._id,
       [project.consumedQty]: Number(record[project.consumedQty]) || 0,
@@ -323,7 +323,7 @@ exports.bulkUpdate = async (req, res) => {
     const MtoDynamic = await dynamicCollection(project.collectionName);
 
     const existingRecords = await MtoDynamic.find({
-      [project.pk]: { $in: data.map((d) => d[project.pk]) },
+      [project.pk]: { $in: data.map((d) => d[project.pk].toString()) },
       project: project._id,
     });
 

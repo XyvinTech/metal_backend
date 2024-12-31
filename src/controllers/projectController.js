@@ -6,6 +6,7 @@ const fs = require("fs");
 const xlsx = require("xlsx");
 const { snakeCase } = require("lodash");
 const { generateUniqueDigit } = require("../utils/generateUniqueDigit");
+const { dynamicCollection } = require("../helpers/dynamicCollection");
 
 exports.createProject = async (req, res) => {
   try {
@@ -171,6 +172,12 @@ exports.updateProject = async (req, res) => {
 exports.deleteProject = async (req, res) => {
   try {
     const project = await Project.findByIdAndDelete(req.params.id);
+
+    if (project) {
+      const MtoDynamic = await dynamicCollection(project.collectionName);
+      await MtoDynamic.deleteMany({ project: project._id });
+    }
+
     if (!project) {
       return responseHandler(res, 404, "Project not found");
     }
