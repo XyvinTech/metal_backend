@@ -333,7 +333,7 @@ exports.bulkUpdate = async (req, res) => {
 
     for (const newRecord of data) {
       const oldRecord = existingRecords.find(
-        (existing) => existing[project.pk] === newRecord[project.pk]
+        (existing) => existing[project.pk].toString() === newRecord[project.pk].toString()
       );
 
       if (oldRecord) {
