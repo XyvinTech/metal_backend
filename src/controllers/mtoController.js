@@ -182,6 +182,68 @@ exports.downloadMtoCsv = async (req, res) => {
   }
 };
 
+
+exports.getHeadersAndMtoData = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const { pageNo = 1, limit = 10 } = req.query;
+
+    if (!projectId) {
+      return responseHandler(res, 400, "Project ID is required");
+    }
+
+  
+    const project = await Project.findById(projectId);
+
+    if (!project) {
+      return responseHandler(res, 404, "Project not found");
+    }
+
+ 
+    const headers = project.headers.map(header => (header));
+
+    if (!headers || headers.length === 0) {
+      return responseHandler(res, 404, "No headers found for the project");
+    }
+
+    const skipCount = limit * (pageNo - 1);
+    const MtoDynamic = await dynamicCollection(project.collectionName);
+
+    const mtoData = await MtoDynamic.find()
+      .skip(skipCount)
+      .limit(Number(limit))
+      .sort({ createdAt: -1, _id: 1 })
+      .lean();
+
+    const totalCount = await MtoDynamic.countDocuments();
+
+    if (!mtoData || mtoData.length === 0) {
+      return responseHandler(res, 404, "No MTO entries found");
+    }
+
+ 
+    const data = {
+      headers,
+      mtoData,
+      projectName: project.project
+    };
+
+    return responseHandler(
+      res,
+      200,
+      "Headers and MTO data retrieved successfully",
+      data,
+      totalCount
+    );
+  } catch (error) {
+    console.error("Error fetching headers and MTO data:", error.message);
+    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
+  }
+};
+
+
+
+
 exports.fetchSummaryByProjectId = async (req, res) => {
   try {
     const { page = 1, limit = 10 } = req.query;

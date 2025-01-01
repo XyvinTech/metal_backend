@@ -494,3 +494,65 @@
  *       500:
  *         description: Internal Server Error.
  */
+
+
+/**
+ * @swagger
+ * /mto/header/{projectId}:
+ *   get:
+ *     summary: Retrieve headers and MTO data for a specific project
+ *     description: Fetch the headers and MTO data associated with a project by its ID. Data is paginated with optional query parameters for page number and limit.
+ *     tags:
+ *       - MTO
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the project
+ *       - in: query
+ *         name: pageNo
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: The page number for pagination
+ *       - in: query
+ *         name: limit
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: The number of entries per page
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved headers and MTO data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 headers:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                   description: List of headers in snake_case
+ *                 mtoData:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                   description: Array of MTO data entries
+ *                 projectName:
+ *                   type: string
+ *                   description: Name of the project
+ *                 totalCount:
+ *                   type: integer
+ *                   description: Total count of MTO entries
+ *       400:
+ *         description: Project ID is required
+ *       404:
+ *         description: Project not found or no data available
+ *       500:
+ *         description: Internal Server Error
+ */
