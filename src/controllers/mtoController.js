@@ -182,155 +182,102 @@ exports.downloadMtoCsv = async (req, res) => {
   }
 };
 
-
-exports.getHeadersAndMtoData = async (req, res) => {
+exports.getSummery = async (req, res) => {
   try {
     const { projectId } = req.params;
-    const { pageNo = 1, limit = 10 } = req.query;
+    const { selectedHeaders = [], download } = req.query;
 
     if (!projectId) {
       return responseHandler(res, 400, "Project ID is required");
     }
 
-  
     const project = await Project.findById(projectId);
 
     if (!project) {
       return responseHandler(res, 404, "Project not found");
     }
 
- 
-    const headers = project.headers.map(header => (header));
+    let headers = project.headers;
+    headers = headers.map((header) => snakeCase(header));
 
     if (!headers || headers.length === 0) {
       return responseHandler(res, 404, "No headers found for the project");
     }
 
-    const skipCount = limit * (pageNo - 1);
+    const selectedHeadersArray = Array.isArray(selectedHeaders)
+      ? selectedHeaders
+      : selectedHeaders.split(",");
+
+    const selectedHeadersSnakeCase = selectedHeadersArray.map(snakeCase);
+
+    const invalidHeaders = selectedHeadersSnakeCase.filter(
+      (header) => header && !headers.includes(header)
+    );
+
+    if (invalidHeaders.length > 0) {
+      return responseHandler(
+        res,
+        400,
+        `Invalid headers selected: ${invalidHeaders.join(", ")}`
+      );
+    }
+
     const MtoDynamic = await dynamicCollection(project.collectionName);
 
-    const mtoData = await MtoDynamic.find()
-      .skip(skipCount)
-      .limit(Number(limit))
+    const projection = selectedHeadersSnakeCase.reduce((acc, header) => {
+      acc[header] = 1;
+      return acc;
+    }, {});
+
+    const mtoData = await MtoDynamic.find({}, projection)
       .sort({ createdAt: -1, _id: 1 })
       .lean();
 
     const totalCount = await MtoDynamic.countDocuments();
 
-    if (!mtoData || mtoData.length === 0) {
-      return responseHandler(res, 404, "No MTO entries found");
+    const responsePayload = {
+      headers,
+      mtoData: selectedHeadersSnakeCase.length ? mtoData : [],
+      projectName: project.project,
+      selectedHeaders: selectedHeadersSnakeCase,
+      totalCount: selectedHeadersSnakeCase.length ? totalCount : 0,
+    };
+
+    if (!selectedHeadersSnakeCase.length) {
+      return responseHandler(
+        res,
+        200,
+        "Headers retrieved successfully. Please select headers to fetch data.",
+        project.headers
+      );
     }
 
- 
-    const data = {
-      headers,
-      mtoData,
-      projectName: project.project
-    };
+    if (!mtoData || mtoData.length === 0) {
+      return responseHandler(
+        res,
+        404,
+        "No MTO entries found for the selected headers",
+        responsePayload
+      );
+    }
+
+    if (download === "true") {
+      const json2csvParser = new Parser();
+      const csv = json2csvParser.parse(mtoData);
+
+      res.header("Content-Type", "text/csv");
+      res.attachment(`${project.project}_mto_data.csv`);
+      return res.send(csv);
+    }
 
     return responseHandler(
       res,
       200,
       "Headers and MTO data retrieved successfully",
-      data,
-      totalCount
+      responsePayload
     );
   } catch (error) {
     console.error("Error fetching headers and MTO data:", error.message);
-    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
-  }
-};
-
-
-
-
-exports.fetchSummaryByProjectId = async (req, res) => {
-  try {
-    const { page = 1, limit = 10 } = req.query;
-    const skipCount = 10 * (page - 1);
-
-    const mto = await Mto.find({ project: req.params.id })
-      .skip(skipCount)
-      .limit(limit)
-      .sort({ createdAt: -1, _id: 1 });
-    const totalCount = await Mto.countDocuments({ project: req.params.id });
-
-    if (!mto || mto.length === 0) {
-      return responseHandler(res, 404, "MTO entry not found");
-    }
-
-    const summary = mto.map((mtoItem) => ({
-      identCode: mtoItem.identCode,
-      uom: mtoItem.uom,
-      size: mtoItem.size,
-      sizeTwo: mtoItem.sizeTwo,
-      cat: mtoItem.cat,
-      shortDesc: mtoItem.shortDesc,
-      scopeQty: mtoItem.scopeQty,
-      issuedQtyAss: mtoItem.issuedQtyAss,
-      issuedDate: mtoItem.issuedDate,
-      consumedQty: mtoItem.consumedQty,
-      balanceStock: mtoItem.balanceStock,
-    }));
-
-    return responseHandler(
-      res,
-      200,
-      "MTO entry retrieved successfully",
-      summary,
-      totalCount
-    );
-  } catch (error) {
-    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
-  }
-};
-
-exports.downloadSummaryByProjectId = async (req, res) => {
-  try {
-    const mtos = await Mto.find({ project: req.params.id });
-
-    if (!mtos || mtos.length === 0) {
-      return responseHandler(res, 404, "No MTO data found for this project");
-    }
-
-    const fields = [
-      "identCode",
-      "uom",
-      "size",
-      "sizeTwo",
-      "cat",
-      "shortDesc",
-      "scopeQty",
-      "issuedQtyAss",
-      "issuedDate",
-      "consumedQty",
-      "balanceStock",
-    ];
-    const json2csvParser = new Parser({ fields });
-    const csv = json2csvParser.parse(mtos);
-
-    const downloadsDir = "./downloads";
-    if (!fs.existsSync(downloadsDir)) {
-      fs.mkdirSync(downloadsDir, { recursive: true });
-    }
-
-    const filePath = `${downloadsDir}/mto_data_${Date.now()}.csv`;
-    fs.writeFileSync(filePath, csv);
-
-    res.download(filePath, "mto_data.csv", (err) => {
-      if (err) {
-        console.error(`File Download Error: ${err.message}`);
-        return responseHandler(res, 500, `File Download Error: ${err.message}`);
-      }
-
-      fs.unlink(filePath, (unlinkErr) => {
-        if (unlinkErr) {
-          console.error(`File Deletion Error: ${unlinkErr.message}`);
-        }
-      });
-    });
-  } catch (error) {
-    console.error(`Internal Server Error: ${error.message}`);
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
@@ -395,7 +342,8 @@ exports.bulkUpdate = async (req, res) => {
 
     for (const newRecord of data) {
       const oldRecord = existingRecords.find(
-        (existing) => existing[project.pk].toString() === newRecord[project.pk].toString()
+        (existing) =>
+          existing[project.pk].toString() === newRecord[project.pk].toString()
       );
 
       if (oldRecord) {

@@ -7,19 +7,14 @@ const upload = multer({ dest: "uploads/" });
 
 mtoRoute.use(authVerify);
 
-
 mtoRoute
   .route("/single/:id")
   .get(mtoController.getMtoById)
   .put(mtoController.updateMto);
 
-
-
-mtoRoute.get("/header/:projectId", mtoController.getHeadersAndMtoData);
+mtoRoute.get("/summery/:projectId", mtoController.getSummery);
 mtoRoute.get("/download/:projectId", mtoController.downloadMtoCsv);
-mtoRoute.get("/summery/:id", mtoController.fetchSummaryByProjectId);
 
-mtoRoute.get("/summery/download/:id", mtoController.downloadSummaryByProjectId);
 mtoRoute.put("/update", upload.single("file"), mtoController.bulkUpdate);
 
 module.exports = mtoRoute;

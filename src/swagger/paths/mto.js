@@ -99,7 +99,6 @@
  *         description: Internal Server Error
  */
 
-
 /**
  * @swagger
  * /mto/single/{id}:
@@ -225,8 +224,6 @@
  *         description: Internal Server Error
  */
 
-
-
 /**
  * @swagger
  * /mto/summery/{id}:
@@ -337,9 +334,6 @@
  *                   example: "Internal Server Error: [error details]"
  */
 
-
-
-
 /**
  * @swagger
  * /mto/summery/download/{id}:
@@ -393,115 +387,12 @@
  *                   example: "Internal Server Error: [error details]"
  */
 
-
 /**
  * @swagger
- * /mto/update:
- *   put:
- *     summary: Upload an Excel file
- *     description: Uploads an Excel file, associates its content with a project ID, and saves the data to the database.
- *     tags:
- *       - MTO
- *     requestBody:
- *       required: true
- *       content:
- *         multipart/form-data:
- *           schema:
- *             type: object
- *             properties:
- *               file:
- *                 type: string
- *                 format: binary
- *                 description: The Excel file to be uploaded.
- *               project:
- *                 type: string
- *                 format: uuid
- *                 description: The ID of the project to associate the data with.
- *             required:
- *               - file
- *               - project
- *     responses:
- *       201:
- *         description: Excel file uploaded and data saved successfully.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Excel file uploaded and data saved successfully
- *                 data:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       _id:
- *                         type: string
- *                         format: uuid
- *                       project:
- *                         type: string
- *                         format: uuid
- *                       unit:
- *                         type: string
- *                       lineNo:
- *                         type: string
- *                       lineLocation:
- *                         type: string
- *                       areaLineSheetIdent:
- *                         type: string
- *                       area:
- *                         type: string
- *                       line:
- *                         type: string
- *                       sheet:
- *                         type: number
- *                       identCode:
- *                         type: string
- *                       uom:
- *                         type: string
- *                       size:
- *                         type: number
- *                       sizeTwo:
- *                         type: number
- *                       specCode:
- *                         type: string
- *                       shortCode:
- *                         type: string
- *                       cat:
- *                         type: string
- *                       shortDesc:
- *                         type: string
- *                       mtoRev:
- *                         type: string
- *                       sf:
- *                         type: string
- *                       scopeQty:
- *                         type: number
- *                       issuedQtyAss:
- *                         type: number
- *                       issuedDate:
- *                         type: string
- *                         format: date-time
- *                       balToIssue:
- *                         type: number
- *                       consumedQty:
- *                         type: number
- *                       balanceStock:
- *                         type: number
- *       400:
- *         description: No file uploaded, project ID missing, or file contains insufficient data.
- *       500:
- *         description: Internal Server Error.
- */
-
-
-/**
- * @swagger
- * /mto/header/{projectId}:
+ * /mto/summery/{projectId}:
  *   get:
  *     summary: Retrieve headers and MTO data for a specific project
- *     description: Fetch the headers and MTO data associated with a project by its ID. Data is paginated with optional query parameters for page number and limit.
+ *     description: Fetch the headers and MTO data associated with a project by its ID. Optionally, users can select specific headers to filter the MTO data. Data is paginated with optional query parameters for page number and limit. If the `download` query parameter is provided, the MTO data is returned as a downloadable CSV file.
  *     tags:
  *       - MTO
  *     parameters:
@@ -512,19 +403,21 @@
  *           type: string
  *         description: The ID of the project
  *       - in: query
- *         name: pageNo
+ *         name: selectedHeaders
  *         required: false
  *         schema:
- *           type: integer
- *           default: 1
- *         description: The page number for pagination
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: An array or comma-separated list of headers to filter the MTO data
  *       - in: query
- *         name: limit
+ *         name: download
  *         required: false
  *         schema:
- *           type: integer
- *           default: 10
- *         description: The number of entries per page
+ *           type: string
+ *           enum:
+ *             - "true"
+ *           description: Set to 'true' to download the MTO data as a CSV file
  *     responses:
  *       200:
  *         description: Successfully retrieved headers and MTO data
@@ -537,22 +430,27 @@
  *                   type: array
  *                   items:
  *                     type: string
- *                   description: List of headers in snake_case
+ *                   description: List of all headers in snake_case
+ *                 selectedHeaders:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                   description: List of selected headers used to filter MTO data
  *                 mtoData:
  *                   type: array
  *                   items:
  *                     type: object
- *                   description: Array of MTO data entries
+ *                   description: Array of MTO data entries filtered by selected headers
  *                 projectName:
  *                   type: string
  *                   description: Name of the project
  *                 totalCount:
  *                   type: integer
- *                   description: Total count of MTO entries
+ *                   description: Total count of MTO entries matching the selected headers
  *       400:
- *         description: Project ID is required
+ *         description: Project ID is required or invalid headers are selected
  *       404:
- *         description: Project not found or no data available
+ *         description: Project not found, no headers available, or no MTO data for the selected headers
  *       500:
  *         description: Internal Server Error
  */
