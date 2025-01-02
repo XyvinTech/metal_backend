@@ -369,6 +369,7 @@ exports.bulkUpdate = async (req, res) => {
             [project.pk]: oldRecord[project.pk],
             [project.issuedQty]: oldRecord[project.issuedQty],
             [project.consumedQty]: newRecord[project.consumedQty],
+            [project.dateName]: newRecord[project.dateName],
           });
         }
 

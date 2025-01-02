@@ -299,32 +299,53 @@ exports.getAlerts = async (req, res) => {
 
 exports.downloadAlerts = async (req, res) => {
   try {
+    const project = await Project.findById(req.params.id);
+    if (!project) {
+      return responseHandler(res, 404, "Project not found");
+    }
+
+    // Get the dynamic collection for MTO
+    const MtoDynamic = await dynamicCollection(project.collectionName);
+
+    // Fetch alerts for the given project
     const alerts = await Alert.find({ project: req.params.id })
       .sort({ createdAt: -1, _id: 1 })
       .populate("project", "project")
-      .populate("mto", "identCode areaLineSheetIdent")
       .lean();
 
     if (!alerts || alerts.length === 0) {
       return responseHandler(res, 404, "No alerts found for CSV export");
     }
 
-    const mappedData = alerts.map((alert) => ({
-      id: alert._id || "",
-      projectName: alert.project?.project || "",
-      mtoIdentCode: alert.mto?.identCode || "",
-      areaLineSheetIdent: alert.areaLineSheetIdent || "",
-      issuedQtyAss: alert.issuedQtyAss || "",
-      consumedQty: alert.consumedQty || "",
-    }));
+    // Retrieve MTO data dynamically and map the alerts
+    const mappedData = await Promise.all(
+      alerts.map(async (alert) => {
+        let mtoIdentCode = "";
+        let areaLineSheetIdent = "";
+
+        if (alert.mto) {
+          const mtoData = await MtoDynamic.findById(alert.mto).lean();
+          mtoIdentCode = mtoData?.identCode || "";
+          areaLineSheetIdent = mtoData?.areaLineSheetIdent || "";
+        }
+
+        return {
+          id: alert._id || "",
+          projectName: alert.project?.project || "",
+          issuedQtyAss: alert.issuedQty || "",
+          consumedQty: alert.consumedQty || "",
+          issuedDate: alert.issuedDate || "",
+        };
+      })
+    );
 
     const csvStringifier = createObjectCsvStringifier({
       header: [
         { id: "projectName", title: "Project" },
-        { id: "mtoIdentCode", title: "Ident Code" },
-        { id: "areaLineSheetIdent", title: "Area Line Sheet Ident" },
         { id: "issuedQtyAss", title: "Issued Qty Ass" },
         { id: "consumedQty", title: "Consumed Qty" },
+        { id: "issuedDate", title: "Issued Date" },
+
       ],
     });
 

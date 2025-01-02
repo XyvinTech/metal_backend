@@ -150,14 +150,14 @@
  *           schema:
  *             type: object
  *             properties:
- *               issuedQtyAss:
+ *               issued_qty_ass:
  *                 type: number
  *                 example: 350
- *               issuedDate:
+ *               issue_date:
  *                 type: string
  *                 format: date
  *                 example: "2024-12-19"
- *               consumedQty:
+ *               consumed_qty:
  *                 type: number
  *                 example: 150
  *     responses:
