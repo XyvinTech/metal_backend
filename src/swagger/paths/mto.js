@@ -171,29 +171,6 @@
  *         description: Internal Server Error
  */
 
-/**
- * @swagger
- * /mto/single/{id}:
- *   delete:
- *     summary: Delete an MTO entry
- *     description: Deletes an MTO entry by its ID.
- *     tags:
- *       - MTO
- *     parameters:
- *       - name: id
- *         in: path
- *         required: true
- *         description: The ID of the MTO entry to delete
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: MTO entry deleted successfully
- *       404:
- *         description: MTO entry not found
- *       500:
- *         description: Internal Server Error
- */
 
 /**
  * @swagger
@@ -224,168 +201,7 @@
  *         description: Internal Server Error
  */
 
-/**
- * @swagger
- * /mto/summery/{id}:
- *   get:
- *     summary: Fetch MTO summary by project ID
- *     description: Retrieves a paginated summary of MTO entries for a specified project, including relevant details such as identCode, size, UOM, and more.
- *     tags:
- *       - MTO
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: The ID of the project to fetch the MTO summary for.
- *       - in: query
- *         name: page
- *         schema:
- *           type: integer
- *           default: 1
- *         required: false
- *         description: Page number for pagination.
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           default: 10
- *         required: false
- *         description: Number of entries to retrieve per page.
- *     responses:
- *       200:
- *         description: MTO entry retrieved successfully.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: integer
- *                   example: 200
- *                 message:
- *                   type: string
- *                   example: "MTO entry retrieved successfully"
- *                 data:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       identCode:
- *                         type: string
- *                         example: "IC-12345"
- *                       uom:
- *                         type: string
- *                         example: "kg"
- *                       size:
- *                         type: string
- *                         example: "12"
- *                       sizeTwo:
- *                         type: string
- *                         example: "24"
- *                       cat:
- *                         type: string
- *                         example: "Category A"
- *                       shortDesc:
- *                         type: string
- *                         example: "Short description of the item"
- *                       scopeQty:
- *                         type: number
- *                         example: 100
- *                       issuedQtyAss:
- *                         type: number
- *                         example: 50
- *                       issuedDate:
- *                         type: string
- *                         format: date-time
- *                         example: "2024-12-23T00:00:00Z"
- *                       consumedQty:
- *                         type: number
- *                         example: 30
- *                       balanceStock:
- *                         type: number
- *                         example: 20
- *       404:
- *         description: MTO entry not found.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: integer
- *                   example: 404
- *                 message:
- *                   type: string
- *                   example: "MTO entry not found"
- *       500:
- *         description: Internal Server Error.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: integer
- *                   example: 500
- *                 message:
- *                   type: string
- *                   example: "Internal Server Error: [error details]"
- */
 
-/**
- * @swagger
- * /mto/summery/download/{id}:
- *   get:
- *     summary: Download MTO summary as a CSV file
- *     description: Retrieves MTO data for a specified project ID and downloads it as a CSV file.
- *     tags:
- *       - MTO
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: The ID of the project to fetch and download the MTO summary for.
- *     responses:
- *       200:
- *         description: MTO summary downloaded successfully as a CSV file.
- *         content:
- *           text/csv:
- *             schema:
- *               type: string
- *               example: |
- *                 identCode,uom,size,sizeTwo,cat,shortDesc,scopeQty,issuedQtyAss,issuedDate,consumedQty,balanceStock
- *                 IC-12345,kg,12,24,Category A,Short description of the item,100,50,2024-12-23T00:00:00Z,30,20
- *       404:
- *         description: No MTO data found for the specified project.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: integer
- *                   example: 404
- *                 message:
- *                   type: string
- *                   example: "No MTO data found for this project"
- *       500:
- *         description: Internal Server Error.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: integer
- *                   example: 500
- *                 message:
- *                   type: string
- *                   example: "Internal Server Error: [error details]"
- */
 
 /**
  * @swagger
@@ -453,4 +269,39 @@
  *         description: Project not found, no headers available, or no MTO data for the selected headers
  *       500:
  *         description: Internal Server Error
+ */
+
+/**
+ * @swagger
+ * /mto/bulkupdate:
+ *   put:
+ *     summary: Upload an Excel file
+ *     description: Uploads an Excel file, associates its content with a project ID, and saves the data to the database.
+ *     tags:
+ *       - MTO
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: The Excel file to be uploaded.
+ *               project:
+ *                 type: string
+ *                 format: uuid
+ *                 description: The ID of the project to associate the data with.
+ *             required:
+ *               - file
+ *               - project
+ *     responses:
+ *       201:
+ *         description: Excel file uploaded and data saved successfully.
+ *       400:
+ *         description: No file uploaded, project ID missing, or file contains insufficient data.
+ *       500:
+ *         description: Internal Server Error.
  */

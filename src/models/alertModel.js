@@ -11,8 +11,9 @@ const alertSchema = mongoose.Schema(
         ref: "Mto",
     },
     areaLineSheetIdent: { type: String },
-    issuedQtyAss: { type: Number },
+    issuedQty: { type: Number },
     consumedQty: { type: Number },
+    issuedDate: { type: Date }
    
 
   },

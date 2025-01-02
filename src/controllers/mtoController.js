@@ -1,5 +1,3 @@
-const mongoose = require("mongoose");
-const Mto = require("../models/mtoModel");
 const responseHandler = require("../helpers/responseHandler");
 const validations = require("../validations");
 const { Parser } = require("json2csv");
@@ -70,13 +68,23 @@ exports.getMtoById = async (req, res) => {
 
 exports.updateMto = async (req, res) => {
   try {
+
     const { error } = validations.updateMtoSchema.validate(req.body, {
-      abortEarly: true,
+      abortEarly: false, 
     });
     if (error) {
-      return responseHandler(res, 400, `Invalid input: ${error.message}`);
+      return responseHandler(
+        res,
+        400,
+        `Invalid input: ${error.details.map((err) => err.message).join(", ")}`
+      );
     }
+
     const project = await Project.findById(req.query.project);
+    if (!project) {
+      return responseHandler(res, 404, "Project not found");
+    }
+
     const MtoDynamic = await dynamicCollection(project.collectionName);
     const findMto = await MtoDynamic.findById(req.params.id);
 
@@ -84,39 +92,42 @@ exports.updateMto = async (req, res) => {
       return responseHandler(res, 404, "MTO entry not found");
     }
 
-    const qtyCheck = project.issuedQty;
-
-    if (findMto[qtyCheck] < req.body.consumedQty) {
+    if (findMto[project.issuedQty] < req.body.consumed_qty) {
       await Alert.create({
         project: findMto.project,
         mto: findMto._id,
-        issuedQty: findMto[qtyCheck],
-        consumedQty: req.body.consumedQty,
+        issuedQty: findMto[project.issuedQty],
+        consumedQty: req.body.consumed_qty,
+        issuedDate: req.body.issue_date,
       });
     }
 
-    const data = {
-      [project.consumedQty]: req.body.consumedQty,
-      [project.issuedQty]: req.body.issuedQty,
-      [project.dateName]: req.body.issuedDate,
+
+    const updatedData = {
+      [project.consumedQty]: req.body.consumed_qty,
+      [project.issuedQty]: req.body.issued_qty_ass,
+      [project.dateName]: req.body.issue_date,
     };
+
 
     const oldPayload = {
       [project.consumedQty]: findMto[project.consumedQty],
       [project.issuedQty]: findMto[project.issuedQty],
       [project.dateName]: findMto[project.dateName],
     };
+
     await Log.create({
       admin: req.userId,
       description: "Single update",
       project: findMto.project,
-      oldPayload: oldPayload,
-      newPayload: data,
+      oldPayload,
+      newPayload: updatedData,
       host: req.headers.host,
       agent: req.headers["user-agent"],
     });
 
-    const mto = await MtoDynamic.findByIdAndUpdate(req.params.id, data, {
+
+    const mto = await MtoDynamic.findByIdAndUpdate(req.params.id, updatedData, {
       new: true,
       runValidators: true,
     });
@@ -124,11 +135,15 @@ exports.updateMto = async (req, res) => {
     if (!mto) {
       return responseHandler(res, 404, "MTO entry not found");
     }
+
     return responseHandler(res, 200, "MTO entry updated successfully", mto);
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
+
+
+
 exports.downloadMtoCsv = async (req, res) => {
   try {
     const { projectId } = req.params;

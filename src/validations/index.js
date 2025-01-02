@@ -17,9 +17,6 @@ exports.updateAdminSchema = Joi.object({
   project: Joi.string(),
 });
 
-
-
-
 exports.createProjectSchema = Joi.object({
   project: Joi.string().required(),
   code: Joi.string().required(),
@@ -30,10 +27,7 @@ exports.createProjectSchema = Joi.object({
   issuedQty: Joi.string().required(),
   consumedQty: Joi.string().required(),
   dateName: Joi.string().required(),
-
-
 });
-
 
 exports.updateProjectSchema = Joi.object({
   project: Joi.string(),
@@ -43,37 +37,8 @@ exports.updateProjectSchema = Joi.object({
   consultant: Joi.string(),
 });
 
-
-exports.createMtoSchema = Joi.object({
-  unit: Joi.string(),
-  lineNo: Joi.string(),
-  lineLocation: Joi.string(),
-  areaLineSheetIdent: Joi.string(),
-  area: Joi.string(),
-  line: Joi.string(),
-  sheet: Joi.number(),
-  identCode: Joi.string(),
-  uom: Joi.string(),
-  size: Joi.number(),
-  sizeTwo: Joi.number(),
-  specCode: Joi.string(),
-  shortCode: Joi.string(),
-  cat: Joi.string(),
-  shortDesc: Joi.string(),
-  mtoRev: Joi.string(),
-  sf: Joi.string(),
-  scopeQty: Joi.number(),
-  issuedQtyAss: Joi.number(),
-  issuedDate: Joi.date(),
-  balToIssue: Joi.number(),
-  consumedQty: Joi.number(),
-  balanceStock: Joi.number(),
-});
-
 exports.updateMtoSchema = Joi.object({
-  issuedQty: Joi.number(),
-  issuedDate: Joi.date(),
-  consumedQty: Joi.number()
+  issued_qty_ass: Joi.number().required(),
+  issue_date: Joi.date().required(),
+  consumed_qty: Joi.number().required(),
 });
-
-

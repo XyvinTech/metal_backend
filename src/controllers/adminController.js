@@ -6,6 +6,8 @@ const { generateToken } = require("../utils/generateToken");
 const Log = require("../models/logModel");
 const Alert = require("../models/alertModel");
 const { createObjectCsvStringifier } = require("csv-writer");
+const Project = require("../models/projectModel");
+const { dynamicCollection } = require("../helpers/dynamicCollection");
 
 exports.loginAdmin = async (req, res) => {
   try {
@@ -244,20 +246,38 @@ exports.getAlerts = async (req, res) => {
     const { page = 1, limit = 10 } = req.query;
     const skipCount = (page - 1) * limit;
 
+    // Find the project by its ID to get the collection name
+    const project = await Project.findById(req.params.id);
+    if (!project) {
+      return responseHandler(res, 404, "Project not found");
+    }
+
+    // Get the dynamic collection for MTO
+    const MtoDynamic = await dynamicCollection(project.collectionName);
+
+    // Fetch alerts for the given project
     const alerts = await Alert.find({ project: req.params.id })
       .skip(skipCount)
       .sort({ createdAt: -1, _id: 1 })
       .populate("project", "project")
-      .populate("mto", "identCode")
       .lean();
 
-    const mappedData = alerts.map((user) => {
-      return {
-        ...user,
-        projectname: user.project.project || "",
-        mtoIdentCode: user.mto.identCode || "",
-      };
-    });
+    // Retrieve MTO data dynamically and map the alerts
+    const mappedData = await Promise.all(
+      alerts.map(async (alert) => {
+        let mtoIdentCode = "";
+        if (alert.mto) {
+          const mtoData = await MtoDynamic.findById(alert.mto).lean();
+          mtoIdentCode = mtoData?.identCode || "";
+        }
+
+        return {
+          ...alert,
+          projectname: alert.project.project || "",
+          mtoIdentCode,
+        };
+      })
+    );
 
     const totalCount = await Alert.countDocuments({ project: req.params.id });
 
