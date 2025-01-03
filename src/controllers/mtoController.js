@@ -25,7 +25,6 @@ exports.getMtoById = async (req, res) => {
     const sort = { createdAt: -1, _id: 1 };
 
     const filter = { project: project._id };
-
     Object.keys(queryFilters).forEach((key) => {
       if (queryFilters[key] && key !== "pageNo" && key !== "limit") {
         filter[key] = { $regex: queryFilters[key], $options: "i" };
@@ -68,9 +67,8 @@ exports.getMtoById = async (req, res) => {
 
 exports.updateMto = async (req, res) => {
   try {
-
     const { error } = validations.updateMtoSchema.validate(req.body, {
-      abortEarly: false, 
+      abortEarly: false,
     });
     if (error) {
       return responseHandler(
@@ -102,13 +100,11 @@ exports.updateMto = async (req, res) => {
       });
     }
 
-
     const updatedData = {
       [project.consumedQty]: req.body.consumed_qty,
       [project.issuedQty]: req.body.issued_qty_ass,
       [project.dateName]: req.body.issue_date,
     };
-
 
     const oldPayload = {
       [project.consumedQty]: findMto[project.consumedQty],
@@ -126,7 +122,6 @@ exports.updateMto = async (req, res) => {
       agent: req.headers["user-agent"],
     });
 
-
     const mto = await MtoDynamic.findByIdAndUpdate(req.params.id, updatedData, {
       new: true,
       runValidators: true,
@@ -141,8 +136,6 @@ exports.updateMto = async (req, res) => {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
-
-
 
 exports.downloadMtoCsv = async (req, res) => {
   try {
