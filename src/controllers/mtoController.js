@@ -86,16 +86,7 @@ exports.getMtoById = async (req, res) => {
 
 exports.updateMto = async (req, res) => {
   try {
-    const { error } = validations.updateMtoSchema.validate(req.body, {
-      abortEarly: false,
-    });
-    if (error) {
-      return responseHandler(
-        res,
-        400,
-        `Invalid input: ${error.details.map((err) => err.message).join(", ")}`
-      );
-    }
+    
 
     const project = await Project.findById(req.query.project);
     if (!project) {
