@@ -59,11 +59,17 @@ exports.getMtoById = async (req, res) => {
 
     const headers = project.headers.map((header) => snakeCase(header));
 
+    const editableHeaders = [
+      project.issuedQty,
+      project.consumedQty,
+      project.dateName,
+    ];
+
     const data = {
       headers,
       data: mto,
       project: project.project,
-      projectDetails : project
+      editableHeaders,
     };
 
     return responseHandler(
