@@ -14,6 +14,7 @@ const projectSchema = mongoose.Schema(
     issuedQty: { type: String},
     consumedQty: { type: String},
     dateName: {type :String },
+    selectedHeaders: [{ type: String }], 
   },
   {
     timestamps: true,

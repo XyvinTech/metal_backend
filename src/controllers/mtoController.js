@@ -190,6 +190,7 @@ exports.downloadMtoCsv = async (req, res) => {
   }
 };
 
+
 exports.getSummery = async (req, res) => {
   try {
     const { projectId } = req.params;
@@ -199,6 +200,7 @@ exports.getSummery = async (req, res) => {
       return responseHandler(res, 400, "Project ID is required");
     }
 
+    // Fetch project from the database
     const project = await Project.findById(projectId);
 
     if (!project) {
@@ -212,12 +214,16 @@ exports.getSummery = async (req, res) => {
       return responseHandler(res, 404, "No headers found for the project");
     }
 
+    // Check if user has previously selected headers
+    const userSelection = project.selectedHeaders || [];
+
     const selectedHeadersArray = Array.isArray(selectedHeaders)
       ? selectedHeaders
       : selectedHeaders.split(",");
 
     const selectedHeadersSnakeCase = selectedHeadersArray.map(snakeCase);
 
+    // Validate headers
     const invalidHeaders = selectedHeadersSnakeCase.filter(
       (header) => header && !headers.includes(header)
     );
@@ -230,6 +236,13 @@ exports.getSummery = async (req, res) => {
       );
     }
 
+    // Update the selected headers in the project document
+    if (selectedHeadersSnakeCase.length > 0) {
+      project.selectedHeaders = selectedHeadersSnakeCase;
+      await project.save();
+    }
+
+    // Fetch MTO data
     const MtoDynamic = await dynamicCollection(project.collectionName);
 
     const projection = selectedHeadersSnakeCase.reduce((acc, header) => {
@@ -245,9 +258,9 @@ exports.getSummery = async (req, res) => {
 
     const responsePayload = {
       headers,
+      selectedHeaders: project.selectedHeaders,
       mtoData: selectedHeadersSnakeCase.length ? mtoData : [],
       projectName: project.project,
-      selectedHeaders: selectedHeadersSnakeCase,
       totalCount: selectedHeadersSnakeCase.length ? totalCount : 0,
     };
 
@@ -256,7 +269,7 @@ exports.getSummery = async (req, res) => {
         res,
         200,
         "Headers retrieved successfully. Please select headers to fetch data.",
-        project.headers
+        responsePayload
       );
     }
 
