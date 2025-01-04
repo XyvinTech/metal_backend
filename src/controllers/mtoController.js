@@ -194,7 +194,7 @@ exports.downloadMtoCsv = async (req, res) => {
 exports.getSummery = async (req, res) => {
   try {
     const { projectId } = req.params;
-    const { selectedHeaders = [], download } = req.query;
+    let { selectedHeaders = [], download } = req.query;
 
     if (!projectId) {
       return responseHandler(res, 400, "Project ID is required");
@@ -214,8 +214,10 @@ exports.getSummery = async (req, res) => {
       return responseHandler(res, 404, "No headers found for the project");
     }
 
-    // Check if user has previously selected headers
-    const userSelection = project.selectedHeaders || [];
+    
+if (selectedHeaders.length == 0){
+  selectedHeaders = project.selectedHeaders 
+}
 
     const selectedHeadersArray = Array.isArray(selectedHeaders)
       ? selectedHeaders
