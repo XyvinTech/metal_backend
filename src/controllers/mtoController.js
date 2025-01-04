@@ -63,6 +63,7 @@ exports.getMtoById = async (req, res) => {
       headers,
       data: mto,
       project: project.project,
+      projectDetails : project
     };
 
     return responseHandler(
@@ -202,7 +203,6 @@ exports.downloadMtoCsv = async (req, res) => {
   }
 };
 
-
 exports.getSummery = async (req, res) => {
   try {
     const { projectId } = req.params;
@@ -212,7 +212,6 @@ exports.getSummery = async (req, res) => {
       return responseHandler(res, 400, "Project ID is required");
     }
 
-    // Fetch project from the database
     const project = await Project.findById(projectId);
 
     if (!project) {
@@ -226,10 +225,9 @@ exports.getSummery = async (req, res) => {
       return responseHandler(res, 404, "No headers found for the project");
     }
 
-    
-if (selectedHeaders.length == 0){
-  selectedHeaders = project.selectedHeaders 
-}
+    if (selectedHeaders.length == 0) {
+      selectedHeaders = project.selectedHeaders;
+    }
 
     const selectedHeadersArray = Array.isArray(selectedHeaders)
       ? selectedHeaders
@@ -237,7 +235,6 @@ if (selectedHeaders.length == 0){
 
     const selectedHeadersSnakeCase = selectedHeadersArray.map(snakeCase);
 
-    // Validate headers
     const invalidHeaders = selectedHeadersSnakeCase.filter(
       (header) => header && !headers.includes(header)
     );
@@ -250,13 +247,11 @@ if (selectedHeaders.length == 0){
       );
     }
 
-    // Update the selected headers in the project document
     if (selectedHeadersSnakeCase.length > 0) {
       project.selectedHeaders = selectedHeadersSnakeCase;
       await project.save();
     }
 
-    // Fetch MTO data
     const MtoDynamic = await dynamicCollection(project.collectionName);
 
     const projection = selectedHeadersSnakeCase.reduce((acc, header) => {
