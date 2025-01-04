@@ -11,7 +11,13 @@ const { dynamicCollection } = require("../helpers/dynamicCollection");
 
 exports.getMtoById = async (req, res) => {
   try {
-    const { pageNo = 1, limit = 10, ...queryFilters } = req.query;
+    const {
+      pageNo = 1,
+      limit = 10,
+      sortFields = "createdAt",
+      sortOrder = "asc",
+      ...queryFilters
+    } = req.query;
 
     const project = await Project.findById(req.params.id);
     if (!project) {
@@ -22,11 +28,19 @@ exports.getMtoById = async (req, res) => {
 
     const MtoDynamic = await dynamicCollection(project.collectionName);
 
-    const sort = { createdAt: -1, _id: 1 };
+    const sortObject = {};
+    const sortDirection = sortOrder.toLowerCase() === "desc" ? -1 : 1;
+    sortFields.split(",").forEach((field) => {
+      sortObject[field.trim()] = sortDirection;
+    });
 
     const filter = { project: project._id };
+
     Object.keys(queryFilters).forEach((key) => {
-      if (queryFilters[key] && key !== "pageNo" && key !== "limit") {
+      if (
+        queryFilters[key] &&
+        !["pageNo", "limit", "sortFields", "sortOrder"].includes(key)
+      ) {
         filter[key] = { $regex: queryFilters[key], $options: "i" };
       }
     });
@@ -34,7 +48,7 @@ exports.getMtoById = async (req, res) => {
     const mto = await MtoDynamic.find(filter)
       .skip(skipCount)
       .limit(Number(limit))
-      .sort(sort)
+      .sort(sortObject)
       .lean();
 
     const totalCount = await MtoDynamic.countDocuments(filter);
@@ -42,17 +56,15 @@ exports.getMtoById = async (req, res) => {
     if (!mto || mto.length === 0) {
       return responseHandler(res, 404, "MTO entries not found");
     }
-    let headers = [];
 
-    project.headers.forEach((header) => {
-      headers.push(snakeCase(header));
-    });
+    const headers = project.headers.map((header) => snakeCase(header));
 
     const data = {
       headers,
       data: mto,
       project: project.project,
     };
+
     return responseHandler(
       res,
       200,
