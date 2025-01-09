@@ -1,0 +1,69 @@
+name: Deploy Metal App
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy-backend:
+    name: Deploy Backend
+    runs-on: ubuntu-latest
+
+    env:
+      LIGHTSAIL_INSTANCE_IP: ${{ secrets.LIGHTSAIL_INSTANCE_IP }}
+      SSH_USERNAME: ${{ secrets.LIGHTSAIL_USERNAME }}
+      SSH_PASSWORD: ${{ secrets.LIGHTSAIL_PASSWORD }}
+      ENV_FILE_PATH: /root/metal_backend/.env/.env.production
+      APP_NAME: metal-backend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Deploy to Lightsail
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.LIGHTSAIL_INSTANCE_IP }}
+          username: ${{ env.SSH_USERNAME }}
+          password: ${{ env.SSH_PASSWORD }}
+          script: |
+            # Install git if not installed
+            if ! command -v git &> /dev/null; then
+              sudo apt-get update && sudo apt-get install -y git
+            fi
+
+            # Remove existing directory if it exists
+            rm -rf /root/metal_backend
+
+            # Clone the latest code from GitHub
+            git clone https://github.com/XyvinTech/metal_backend.git /root/metal_backend
+
+            # Navigate to backend project directory
+            cd /root/metal_backend
+
+            # Verify Node.js and npm installation
+            node -v || { echo "Node.js not found"; exit 1; }
+            npm -v || { echo "npm not found"; exit 1; }
+
+            # Install PM2 globally if not installed
+            if ! command -v pm2 &> /dev/null; then
+              sudo npm install -g pm2
+            fi
+
+            # Install dependencies
+            npm install
+
+            # Check if environment file exists, otherwise exit
+            if [ ! -f "${ENV_FILE_PATH}" ]; then
+              echo ".env file missing at ${ENV_FILE_PATH}"
+              exit 1
+            fi
+
+            # Copy environment file to the current directory
+            cp "${ENV_FILE_PATH}" .env
+
+            # Restart the application with PM2
+            pm2 delete "${APP_NAME}" || true
+            pm2 start npm --name "${APP_NAME}" -- run start
+            pm2 save
