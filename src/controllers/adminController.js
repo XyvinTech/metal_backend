@@ -270,7 +270,6 @@ exports.getAlerts = async (req, res) => {
         return {
           ...alert,
           projectname: alert.project.project || "",
-          mtoIdentCode,
           mto
         };
       })
