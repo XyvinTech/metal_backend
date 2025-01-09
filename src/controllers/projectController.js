@@ -182,15 +182,19 @@ exports.deleteProject = async (req, res) => {
   try {
     const project = await Project.findByIdAndDelete(req.params.id);
 
-    if (project) {
-      const MtoDynamic = await dynamicCollection(project.collectionName);
-      await MtoDynamic.deleteMany({ project: project._id });
-    }
-
     if (!project) {
       return responseHandler(res, 404, "Project not found");
     }
-    return responseHandler(res, 200, "Project deleted successfully");
+
+    const MtoDynamic = await dynamicCollection(project.collectionName);
+
+    await MtoDynamic.deleteMany({ project: project._id });
+
+    return responseHandler(
+      res,
+      200,
+      "Project and referenced MTO records deleted successfully"
+    );
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
