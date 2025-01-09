@@ -21,5 +21,6 @@ projectRoute
   .delete(checkSuperAdmin, projectController.deleteProject);
 
 projectRoute.get("/list", projectController.getProjects);
+projectRoute.get("/search", projectController.searchProject);
 
 module.exports = projectRoute;

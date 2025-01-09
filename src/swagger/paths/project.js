@@ -369,3 +369,26 @@
  *       500:
  *         description: Internal Server Error.
  */
+
+
+/**
+ * @swagger
+ * /project/search:
+ *   get:
+ *     summary: Search for projects
+ *     description: Retrieves a list of projects that match the search query across multiple fields.
+ *     tags:
+ *       - Projects
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: The search term to filter projects by project name, code, description, owner, or consultant.
+ *     responses:
+ *       200:
+ *         description: Projects retrieved successfully
+ *       500:
+ *         description: Internal Server Error
+ */

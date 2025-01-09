@@ -8,6 +8,7 @@ const Project = require("../models/projectModel");
 const xlsx = require("xlsx");
 const { snakeCase } = require("lodash");
 const { dynamicCollection } = require("../helpers/dynamicCollection");
+const moment = require("moment-timezone");
 
 exports.getMtoById = async (req, res) => {
   try {
@@ -25,7 +26,6 @@ exports.getMtoById = async (req, res) => {
     }
 
     const skipCount = limit * (pageNo - 1);
-
     const MtoDynamic = await dynamicCollection(project.collectionName);
 
     const sortObject = {};
@@ -45,7 +45,7 @@ exports.getMtoById = async (req, res) => {
       }
     });
 
-    const mto = await MtoDynamic.find(filter)
+    let mto = await MtoDynamic.find(filter)
       .skip(skipCount)
       .limit(Number(limit))
       .sort(sortObject)
@@ -57,8 +57,16 @@ exports.getMtoById = async (req, res) => {
       return responseHandler(res, 404, "MTO entries not found");
     }
 
-    const headers = project.headers.map((header) => snakeCase(header));
+    mto = mto.map((entry) => {
+      if (entry[project.dateName]) {
+        entry[project.dateName] = moment
+          .tz(entry[project.dateName], "Asia/Kolkata")
+          .format("YYYY-MM-DD HH:mm:ss");
+      }
+      return entry;
+    });
 
+    const headers = project.headers.map((header) => snakeCase(header));
     const editableHeaders = [
       project.issuedQty,
       project.consumedQty,
@@ -86,8 +94,6 @@ exports.getMtoById = async (req, res) => {
 
 exports.updateMto = async (req, res) => {
   try {
-    
-
     const project = await Project.findById(req.query.project);
     if (!project) {
       return responseHandler(res, 404, "Project not found");
