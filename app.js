@@ -50,18 +50,13 @@ app.use(
   swaggerUi.setup(swaggerSpec, swaggerOptions)
 );
 
-
-
 //* Configure routes for user API
 app.use(`${BASE_PATH}/admin`, adminRoute);
 app.use(`${BASE_PATH}/project`, projectRoute);
 app.use(`${BASE_PATH}/mto`, mtoRoute);
 
-
-
-
-app.all("*", (req, res) => {
-  app.use(express.static(frontendBuildPath));
+app.get("*", (req, res) => {
+  res.sendFile(`${frontendBuildPath}/index.html`);
 });
 
 app.listen(PORT, () => {
