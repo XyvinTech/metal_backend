@@ -262,11 +262,10 @@ exports.getAlerts = async (req, res) => {
       .populate("project", "project")
       .lean();
 
-    const mto = await MtoDynamic.findById(alerts.pk);
-
     // Retrieve MTO data dynamically and map the alerts
     const mappedData = await Promise.all(
       alerts.map(async (alert) => {
+        const mto = await MtoDynamic.findById(alert.mto);
         return {
           ...alert,
           projectname: alert.project.project || "",
