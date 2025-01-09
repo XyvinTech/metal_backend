@@ -28,6 +28,12 @@ const BASE_PATH = `/api/${API_VERSION}`;
 //* Import database connection module
 require("./src/helpers/connection");
 
+//! Define the absolute path to the frontend build directory
+const frontendBuildPath = "/var/www/html/Metal-Craft";
+
+// !Serve static files from the frontend build directory
+app.use(express.static(frontendBuildPath));
+
 //? Define a route for the API root
 app.get(BASE_PATH, (req, res) => {
   return responseHandler(
