@@ -260,6 +260,7 @@ exports.getAlerts = async (req, res) => {
       .skip(skipCount)
       .sort({ createdAt: -1, _id: 1 })
       .populate("project", "project")
+      .populate("mto")
       .lean();
 
     // Retrieve MTO data dynamically and map the alerts
@@ -339,7 +340,6 @@ exports.downloadAlerts = async (req, res) => {
         { id: "issuedQtyAss", title: "Issued Qty Ass" },
         { id: "consumedQty", title: "Consumed Qty" },
         { id: "issuedDate", title: "Issued Date" },
-
       ],
     });
 
