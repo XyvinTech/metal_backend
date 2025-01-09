@@ -67,6 +67,6 @@ jobs:
             cp /root/metal/.env/.env.production .env
 
             # Restart the application with PM2
-            pm2 delete ${{ env.USERNAME }} || true
-            pm2 start npm --name ${{ env.USERNAME }} -- run start
+            pm2 delete ${{ env.APP_NAME }} || true
+            pm2 start npm --name ${{ env.APP_NAME }} -- run start
             pm2 save
