@@ -54,14 +54,17 @@ jobs:
             # Install dependencies
             npm install
 
-            # Check if environment file exists, otherwise exit
-            if [ ! -f "${ENV_FILE_PATH}" ]; then
-              echo ".env file missing at ${ENV_FILE_PATH}"
+            # Check if the .env.production file exists, otherwise exit
+            echo "Checking if .env.production file exists in /root/metal/.env/"
+            ls -l /root/metal/.env/
+
+            if [ ! -f "/root/metal/.env/.env.production" ]; then
+              echo ".env.production file missing at /root/metal/.env/.env.production"
               exit 1
             fi
 
             # Copy environment file to the current directory
-            cp "${ENV_FILE_PATH}" .env
+            cp /root/metal/.env/.env.production .env
 
             # Restart the application with PM2
             pm2 delete "${APP_NAME}" || true
