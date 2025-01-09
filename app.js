@@ -60,9 +60,9 @@ app.use(`${BASE_PATH}/mto`, mtoRoute);
 
 
 
-app.all("*", (req, res) => {
-  return responseHandler(res, 404, "No API Found..!");
-});
+// app.all("*", (req, res) => {
+//   return responseHandler(res, 404, "No API Found..!");
+// });
 
 app.listen(PORT, () => {
   const portMessage = clc.redBright(`✓ App is running on port: ${PORT}`);
