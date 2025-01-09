@@ -260,8 +260,9 @@ exports.getAlerts = async (req, res) => {
       .skip(skipCount)
       .sort({ createdAt: -1, _id: 1 })
       .populate("project", "project")
-      .populate("mto")
       .lean();
+
+    const mto = await MtoDynamic.findById(alerts.mto);
 
     // Retrieve MTO data dynamically and map the alerts
     const mappedData = await Promise.all(
@@ -270,6 +271,7 @@ exports.getAlerts = async (req, res) => {
           ...alert,
           projectname: alert.project.project || "",
           mtoIdentCode,
+          mto
         };
       })
     );
