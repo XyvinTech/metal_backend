@@ -115,6 +115,15 @@ exports.createProject = async (req, res) => {
 exports.getProjects = async (req, res) => {
   try {
     const filter = {};
+    const { search } = req.query;
+
+    if (search) {
+      filter.$or = [
+        { project: { $regex: search, $options: "i" } },
+        { code: { $regex: search, $options: "i" } },
+        { owner: { $regex: search, $options: "i" } },
+      ];
+    }
 
     if (req.user.superAdmin !== true) {
       filter._id = req.user.project;
@@ -184,41 +193,5 @@ exports.deleteProject = async (req, res) => {
     return responseHandler(res, 200, "Project deleted successfully");
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
-  }
-};
-
-
-exports.searchProject = async (req, res) => {
-  try {
-    const searchTerm = req.query.q;
-
-
-    if (!searchTerm) {
-      const allProjects = await Project.find();
-      return res.status(200).json({
-        message: 'All projects retrieved successfully',
-        data: allProjects,
-      });
-    }
-
-
-    const results = await Project.find({
-      $or: [
-        { project: { $regex: searchTerm, $options: 'i' } },
-        { code: { $regex: searchTerm, $options: 'i' } },
-        { description: { $regex: searchTerm, $options: 'i' } },
-        { owner: { $regex: searchTerm, $options: 'i' } },
-        { consultant: { $regex: searchTerm, $options: 'i' } },
-      ],
-    });
-
-    return res.status(200).json({
-      message: 'Projects retrieved successfully',
-      data: results,
-    });
-  } catch (error) {
-    return res.status(500).json({
-      message: `Internal Server Error: ${error.message}`,
-    });
   }
 };

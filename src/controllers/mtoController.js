@@ -109,6 +109,7 @@ exports.updateMto = async (req, res) => {
     if (findMto[project.issuedQty] < req.body.consumed_qty) {
       await Alert.create({
         project: findMto.project,
+        pk : findMto[project.pk],
         mto: findMto._id,
         issuedQty: findMto[project.issuedQty],
         consumedQty: req.body.consumed_qty,
@@ -383,6 +384,7 @@ exports.bulkUpdate = async (req, res) => {
         if (oldRecord[project.issuedQty] < newRecord[project.consumedQty]) {
           alerts.push({
             project: oldRecord.project,
+            pk: oldRecord[project.pk],
             mto: oldRecord._id,
             [project.pk]: oldRecord[project.pk],
             [project.issuedQty]: oldRecord[project.issuedQty],
