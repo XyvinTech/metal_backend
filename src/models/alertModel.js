@@ -14,8 +14,6 @@ const alertSchema = mongoose.Schema(
     issuedQty: { type: Number },
     consumedQty: { type: Number },
     issuedDate: { type: Date }
-   
-
   },
   {
     timestamps: true,
