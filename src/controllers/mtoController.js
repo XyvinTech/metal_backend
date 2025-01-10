@@ -112,15 +112,15 @@ exports.updateMto = async (req, res) => {
         pk: findMto[project.pk],
         mto: findMto._id,
         issuedQty: findMto[project.issuedQty],
-        consumedQty: req.body.consumed_qty,
-        issuedDate: req.body.issue_date,
+        consumedQty: req.body[project.consumedQty],
+        issuedDate: req.body[project.dateName],
       });
     }
 
     const updatedData = {
-      [project.consumedQty]: req.body.consumed_qty,
-      [project.issuedQty]: req.body.issued_qty_ass,
-      [project.dateName]: req.body.issue_date,
+      [project.consumedQty]: req.body[project.consumedQty],
+      [project.issuedQty]: req.body[project.issuedQty],
+      [project.dateName]: req.body[project.dateName],
     };
 
     const oldPayload = {
