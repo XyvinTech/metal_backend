@@ -30,8 +30,11 @@ exports.loginAdmin = async (req, res) => {
     }
 
     const token = generateToken(findAdmin._id);
-
-    return responseHandler(res, 200, "Login successfully", token);
+    const mappedData = {
+      superAdmin: findAdmin.superAdmin,
+      token: token,
+    };
+    return responseHandler(res, 200, "Login successfully", mappedData);
   } catch (error) {
     return responseHandler(res, 500, `Internal Server Error ${error.message}`);
   }
@@ -269,7 +272,7 @@ exports.getAlerts = async (req, res) => {
         return {
           ...alert,
           projectname: alert.project.project || "",
-          mto
+          mto,
         };
       })
     );
