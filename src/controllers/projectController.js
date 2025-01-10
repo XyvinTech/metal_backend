@@ -58,15 +58,13 @@ exports.createProject = async (req, res) => {
 
       newProject.headers.forEach((header) => {
         const fieldName = snakeCase(header);
-        mtoSchemaDefinition[fieldName] = { type: String };
-
         if (header.toLowerCase().includes("date")) {
           mtoSchemaDefinition[fieldName] = { type: Date };
         }
-        
         else if (!isNaN(Number(header))) {
           mtoSchemaDefinition[fieldName] = { type: Number };
         }
+        mtoSchemaDefinition[fieldName] = { type: String };
       });
 
       mtoSchemaDefinition.project = {
