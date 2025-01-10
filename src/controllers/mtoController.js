@@ -106,7 +106,7 @@ exports.updateMto = async (req, res) => {
       return responseHandler(res, 404, "MTO entry not found");
     }
 
-    if (Number(req.body.consumed_qty) > Number(findMto[project.issuedQty])) {
+    if (Number(req.body[project.consumedQty]) > Number(findMto[project.issuedQty])) {
       await Alert.create({
         project: findMto.project,
         pk: findMto[project.pk],
