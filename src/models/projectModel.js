@@ -17,7 +17,7 @@ const projectSchema = mongoose.Schema(
     issuedQty: { type: String },
     consumedQty: { type: String },
     balanceQty: { type: String },
-    reqQyt: { type: String },
+    reqQty: { type: String },
     dateName: { type: String },
     selectedHeaders: [{ type: String }],
   },
