@@ -35,7 +35,7 @@ exports.createProjectSchema = Joi.object({
 });
 
 exports.updateProjectSchema = Joi.object({
-  project: Joi.string(),
+  project: Joi.array(),
   code: Joi.string(),
   description: Joi.string(),
   owner: Joi.string(),
