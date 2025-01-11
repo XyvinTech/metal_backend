@@ -7,10 +7,10 @@ const adminSchema = mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    project: {
+    project: [{
       type: mongoose.Schema.Types.ObjectId,
       ref: "Project",
-    },
+    }],
     email: { type: String },
     phone: { type: String },
     password: { type: String },
