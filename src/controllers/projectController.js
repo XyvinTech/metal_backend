@@ -60,8 +60,7 @@ exports.createProject = async (req, res) => {
         const fieldName = snakeCase(header);
         if (header.toLowerCase().includes("date")) {
           mtoSchemaDefinition[fieldName] = { type: Date };
-        }
-        else if (!isNaN(Number(header))) {
+        } else if (!isNaN(Number(header))) {
           mtoSchemaDefinition[fieldName] = { type: Number };
         }
         mtoSchemaDefinition[fieldName] = { type: String };
@@ -127,7 +126,7 @@ exports.getProjects = async (req, res) => {
     }
 
     if (req.user.superAdmin !== true) {
-      filter._id = req.user.project;
+      filter._id = { $in: req.user.project };
     }
     const totalCount = await Project.countDocuments(filter);
     const projects = await Project.find(filter);
