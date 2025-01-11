@@ -359,3 +359,63 @@ exports.downloadAlerts = async (req, res) => {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
+
+exports.getDashboardData = async (req, res) => {
+  try {
+    const projectCount = await Project.countDocuments();
+    const adminCount = await Admin.countDocuments();
+
+    const recentLogs = await Log.find()
+      .populate("admin", "name email")
+      .populate("project", "project code")
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .lean();
+
+    const recentActivity = recentLogs.map((data) => {
+      return {
+        ...data,
+        adminName: data?.admin?.name || "",
+        adminMail: data?.admin?.email || "",
+        projectName: data?.project?.project || "",
+        projectCode: data?.project?.code || "",
+      };
+    });
+
+    const changesCount = await Log.countDocuments();
+    const alertCount = await Alert.countDocuments();
+
+    const recentAlerts = await Alert.find()
+      .populate("project", "project code")
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .lean();
+
+    const alertData = recentAlerts.map((data) => {
+      return {
+        ...data,
+        projectName: data?.project?.project || "",
+        projectCode: data?.project?.code || "",
+      };
+    });
+
+    const responsePayload = {
+      projectCount,
+      adminCount,
+      changesCount,
+      alertCount,
+      recentActivity,
+      alertData,
+    };
+
+    res.status(200).json({
+      message: "Dashboard data fetched successfully",
+      data: responsePayload,
+    });
+  } catch (error) {
+    console.error("Error fetching dashboard data:", error.message);
+    res.status(500).json({
+      message: `Internal Server Error: ${error.message}`,
+    });
+  }
+};
