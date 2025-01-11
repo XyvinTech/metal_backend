@@ -30,6 +30,7 @@ exports.createProjectSchema = Joi.object({
   workOrder: Joi.string().required(),
   poDate: Joi.date().required(),
   balanceQty: Joi.string().required(),
+  reqQty: Joi.string().required(),
   finishedDate: Joi.date().required(),
 });
 
