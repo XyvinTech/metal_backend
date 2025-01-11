@@ -18,7 +18,7 @@ exports.updateAdminSchema = Joi.object({
 });
 
 exports.createProjectSchema = Joi.object({
-  project: Joi.string().required(),
+  project: Joi.array().required(),
   code: Joi.string().required(),
   description: Joi.string().required(),
   owner: Joi.string().required(),
