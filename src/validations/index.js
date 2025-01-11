@@ -5,7 +5,7 @@ exports.createAdminSchema = Joi.object({
   email: Joi.string().required(),
   phone: Joi.string().required(),
   active: Joi.boolean(),
-  project: Joi.string().required(),
+  project: Joi.array().required(),
   password: Joi.string().required(),
 });
 
@@ -14,11 +14,11 @@ exports.updateAdminSchema = Joi.object({
   email: Joi.string(),
   phone: Joi.string(),
   active: Joi.boolean(),
-  project: Joi.string(),
+  project: Joi.array(),
 });
 
 exports.createProjectSchema = Joi.object({
-  project: Joi.array().required(),
+  project: Joi.string().required(),
   code: Joi.string().required(),
   description: Joi.string().required(),
   owner: Joi.string().required(),
@@ -35,7 +35,7 @@ exports.createProjectSchema = Joi.object({
 });
 
 exports.updateProjectSchema = Joi.object({
-  project: Joi.array(),
+  project: Joi.string(),
   code: Joi.string(),
   description: Joi.string(),
   owner: Joi.string(),
