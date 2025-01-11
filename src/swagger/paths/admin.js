@@ -480,3 +480,27 @@
  *                   type: string
  *                   example: "Internal Server Error: [error details]"
  */
+
+
+/**
+ * @swagger
+ * /admin/dashboard:
+ *   get:
+ *     summary: Fetch Admin Dashboard Data
+ *     description: API endpoint to fetch total project count, admin count, changes made, and recent activity logs.
+ *     tags:
+ *       - Admin
+ *     responses:
+ *       200:
+ *         description: Dashboard data fetched successfully.
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal Server Error: Database connection failed"
+ */
