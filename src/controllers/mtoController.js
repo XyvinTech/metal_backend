@@ -10,6 +10,7 @@ const { snakeCase } = require("lodash");
 const { dynamicCollection } = require("../helpers/dynamicCollection");
 const moment = require("moment-timezone");
 const Admin = require("../models/adminModel");
+
 exports.getMtoById = async (req, res) => {
   try {
     const {
@@ -125,7 +126,7 @@ exports.updateMto = async (req, res) => {
     const balanceToIssueQty = requiredQty - issuedQty;
     const balanceQty = issuedQty - consumedQty;
 
-    if (balanceQty < 0) {
+    if (balanceQty < 0 || balanceToIssueQty < 0) {
       await Alert.create({
         project: findMto.project,
         pk: findMto[project.pk],
@@ -145,7 +146,7 @@ exports.updateMto = async (req, res) => {
       [project.dateName]: req.body[project.dateName],
     };
 
-    if (req.user.role === "superadmin") {
+    if (req.user.superAdmin) {
       updatedData[project.reqQty] =
         Number(req.body[project.reqQty]) || requiredQty;
     }
