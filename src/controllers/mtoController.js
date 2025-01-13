@@ -74,12 +74,13 @@ exports.getMtoById = async (req, res) => {
       project.balanceQty,
       project.dateName,
     ];
-
+    const balanceQty = project.balanceQty;
     const data = {
       headers,
       data: mto,
       project: project.project,
       editableHeaders,
+      balanceQty,
     };
 
     return responseHandler(
@@ -108,7 +109,9 @@ exports.updateMto = async (req, res) => {
       return responseHandler(res, 404, "MTO entry not found");
     }
 
-    if (Number(req.body[project.consumedQty]) > Number(findMto[project.issuedQty])) {
+    if (
+      Number(req.body[project.consumedQty]) > Number(findMto[project.issuedQty])
+    ) {
       await Alert.create({
         project: findMto.project,
         pk: findMto[project.pk],
@@ -201,7 +204,7 @@ exports.downloadMtoCsv = async (req, res) => {
         return responseHandler(res, 500, `File Download Error: ${err.message}`);
       }
 
-      fs.unlinkSync(filePath); 
+      fs.unlinkSync(filePath);
     });
   } catch (error) {
     console.error("Internal Server Error:", error.message);
