@@ -71,6 +71,8 @@ exports.getMtoById = async (req, res) => {
       project.issuedQty,
       project.consumedQty,
       project.reqQty,
+      project.balanceQty,
+      project.balanceToIssue,
       project.dateName,
     ];
     const balanceQty = project.balanceQty;
@@ -116,7 +118,7 @@ exports.updateMto = async (req, res) => {
     const balanceToIssueQty = requiredQty - issuedQty;
     const balanceQty = issuedQty - consumedQty;
 
-    if (balanceToIssueQty < 0 || balanceQty < 0) {
+    if (balanceQty < 0) {
       await Alert.create({
         project: findMto.project,
         pk: findMto[project.pk],
@@ -333,7 +335,6 @@ exports.getSummery = async (req, res) => {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
-
 exports.bulkUpdate = async (req, res) => {
   try {
     if (!req.file) {
@@ -398,19 +399,38 @@ exports.bulkUpdate = async (req, res) => {
           existing[project.pk].toString() === newRecord[project.pk].toString()
       );
 
-      if (oldRecord) {
-        if (oldRecord[project.issuedQty] < newRecord[project.consumedQty]) {
-          alerts.push({
-            project: oldRecord.project,
-            pk: oldRecord[project.pk],
-            mto: oldRecord._id,
-            [project.pk]: oldRecord[project.pk],
-            [project.issuedQty]: oldRecord[project.issuedQty],
-            [project.consumedQty]: newRecord[project.consumedQty],
-            [project.dateName]: newRecord[project.dateName],
-          });
-        }
+      const requiredQty = Number(oldRecord[project.reqQty]) || 0;
+      const issuedQty = Number(newRecord[project.issuedQty]) || 0;
+      const consumedQty = Number(newRecord[project.consumedQty]) || 0;
 
+      const balanceToIssueQty = requiredQty - issuedQty;
+      const balanceQty = issuedQty - consumedQty;
+
+      if (balanceToIssueQty < 0 || balanceQty < 0) {
+        alerts.push({
+          project: oldRecord.project,
+          pk: oldRecord[project.pk],
+          mto: oldRecord._id,
+          issuedQty: issuedQty,
+          consumedQty: consumedQty,
+          balanceQty: balanceQty,
+          issuedDate: newRecord[project.dateName],
+        });
+      }
+
+      const updatedData = {
+        [project.consumedQty]: consumedQty,
+        [project.issuedQty]: issuedQty,
+        [project.balanceQty]: balanceQty,
+        [project.balanceToIssue]: balanceToIssueQty,
+        [project.dateName]: newRecord[project.dateName],
+      };
+
+      if (req.user.role === "superadmin") {
+        updatedData[project.reqQty] = Number(newRecord[project.reqQty]) || requiredQty;
+      }
+
+      if (oldRecord) {
         logs.push({
           admin: req.userId,
           description: "Bulk update",
@@ -418,18 +438,15 @@ exports.bulkUpdate = async (req, res) => {
           oldPayload: {
             [project.consumedQty]: oldRecord[project.consumedQty],
             [project.issuedQty]: oldRecord[project.issuedQty],
+            [project.balanceQty]: oldRecord[project.balanceQty],
             [project.dateName]: oldRecord[project.dateName],
           },
-          newPayload: {
-            [project.consumedQty]: newRecord[project.consumedQty],
-            [project.issuedQty]: newRecord[project.issuedQty],
-            [project.dateName]: newRecord[project.dateName],
-          },
+          newPayload: updatedData,
           host: req.headers.host,
           agent: req.headers["user-agent"],
         });
 
-        await MtoDynamic.findByIdAndUpdate(oldRecord._id, newRecord);
+        await MtoDynamic.findByIdAndUpdate(oldRecord._id, updatedData);
       } else {
         recordsToInsert.push(newRecord);
       }
