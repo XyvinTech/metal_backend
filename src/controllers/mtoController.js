@@ -66,9 +66,9 @@ exports.getMtoById = async (req, res) => {
     });
 
     const headers = project.headers.map((header) => snakeCase(header));
-    let editableHeaders = [project.issuedQty, project.consumedQty];
+    let editableHeaders = [project.issuedQty, project.consumedQty,project.dateName];
 
-    if (req.user.role === "superadmin") {
+    if (req.user.role === "superAdmin") {
       editableHeaders = [
         project.issuedQty,
         project.consumedQty,
