@@ -9,6 +9,7 @@ const xlsx = require("xlsx");
 const { snakeCase } = require("lodash");
 const { dynamicCollection } = require("../helpers/dynamicCollection");
 const moment = require("moment-timezone");
+const Admin = require("../models/adminModel");
 exports.getMtoById = async (req, res) => {
   try {
     const {
@@ -66,9 +67,13 @@ exports.getMtoById = async (req, res) => {
     });
 
     const headers = project.headers.map((header) => snakeCase(header));
-    let editableHeaders = [project.issuedQty, project.consumedQty,project.dateName];
+    let editableHeaders = [
+      project.issuedQty,
+      project.consumedQty,
+      project.dateName,
+    ];
 
-    if (req.user.role === "superAdmin") {
+    if (req.user.superAdmin) {
       editableHeaders = [
         project.issuedQty,
         project.consumedQty,
@@ -85,7 +90,7 @@ exports.getMtoById = async (req, res) => {
       project: project.project,
       editableHeaders,
       balanceQty,
-      balanceToIssue
+      balanceToIssue,
     };
 
     return responseHandler(
@@ -141,7 +146,8 @@ exports.updateMto = async (req, res) => {
     };
 
     if (req.user.role === "superadmin") {
-      updatedData[project.reqQty] = Number(req.body[project.reqQty]) || requiredQty;
+      updatedData[project.reqQty] =
+        Number(req.body[project.reqQty]) || requiredQty;
     }
 
     const oldPayload = {
