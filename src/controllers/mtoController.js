@@ -71,8 +71,6 @@ exports.getMtoById = async (req, res) => {
       project.issuedQty,
       project.consumedQty,
       project.reqQty,
-      project.balanceQty,
-      project.balanceToIssue,
       project.dateName,
     ];
     const balanceQty = project.balanceQty;
@@ -118,7 +116,7 @@ exports.updateMto = async (req, res) => {
     const balanceToIssueQty = requiredQty - issuedQty;
     const balanceQty = issuedQty - consumedQty;
 
-    if (balanceQty < 0) {
+    if (balanceToIssueQty < 0 || balanceQty < 0) {
       await Alert.create({
         project: findMto.project,
         pk: findMto[project.pk],
