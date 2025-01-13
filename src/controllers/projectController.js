@@ -48,6 +48,7 @@ exports.createProject = async (req, res) => {
     req.body.consumedQty = snakeCase(req.body.consumedQty);
     req.body.reqQty = snakeCase(req.body.reqQty);
     req.body.balanceQty = snakeCase(req.body.balanceQty);
+    req.body.balanceToIssue = snakeCase(req.body.balanceToIssue);
     req.body.dateName = snakeCase(req.body.dateName);
 
     const mtoCollectionName = await generateUniqueDigit(6);

@@ -72,15 +72,18 @@ exports.getMtoById = async (req, res) => {
       project.consumedQty,
       project.reqQty,
       project.balanceQty,
+      project.balanceToIssue,
       project.dateName,
     ];
     const balanceQty = project.balanceQty;
+    const balanceToIssue = project.balanceToIssue;
     const data = {
       headers,
       data: mto,
       project: project.project,
       editableHeaders,
       balanceQty,
+      balanceToIssue
     };
 
     return responseHandler(
@@ -104,33 +107,45 @@ exports.updateMto = async (req, res) => {
 
     const MtoDynamic = await dynamicCollection(project.collectionName);
     const findMto = await MtoDynamic.findById(req.params.id);
-
     if (!findMto) {
       return responseHandler(res, 404, "MTO entry not found");
     }
 
-    if (
-      Number(req.body[project.consumedQty]) > Number(findMto[project.issuedQty])
-    ) {
+    const requiredQty = Number(findMto[project.reqQty]) || 0;
+    const issuedQty = Number(req.body[project.issuedQty]) || 0;
+    const consumedQty = Number(req.body[project.consumedQty]) || 0;
+
+    const balanceToIssueQty = requiredQty - issuedQty;
+    const balanceQty = issuedQty - consumedQty;
+
+    if (balanceQty < 0) {
       await Alert.create({
         project: findMto.project,
         pk: findMto[project.pk],
         mto: findMto._id,
-        issuedQty: findMto[project.issuedQty],
-        consumedQty: req.body[project.consumedQty],
+        issuedQty: issuedQty,
+        consumedQty: consumedQty,
+        balanceQty: balanceQty,
         issuedDate: req.body[project.dateName],
       });
     }
 
     const updatedData = {
-      [project.consumedQty]: req.body[project.consumedQty],
-      [project.issuedQty]: req.body[project.issuedQty],
+      [project.consumedQty]: consumedQty,
+      [project.issuedQty]: issuedQty,
+      [project.balanceQty]: balanceQty,
+      [project.balanceToIssue]: balanceToIssueQty,
       [project.dateName]: req.body[project.dateName],
     };
+
+    if (req.user.role === "superadmin") {
+      updatedData[project.reqQty] = Number(req.body[project.reqQty]) || requiredQty;
+    }
 
     const oldPayload = {
       [project.consumedQty]: findMto[project.consumedQty],
       [project.issuedQty]: findMto[project.issuedQty],
+      [project.balanceQty]: findMto[project.balanceQty],
       [project.dateName]: findMto[project.dateName],
     };
 
