@@ -46,6 +46,8 @@ exports.createProject = async (req, res) => {
     req.body.pk = snakeCase(req.body.pk);
     req.body.issuedQty = snakeCase(req.body.issuedQty);
     req.body.consumedQty = snakeCase(req.body.consumedQty);
+    req.body.reqQty = snakeCase(req.body.reqQty);
+    req.body.balanceQty = snakeCase(req.body.balanceQty);
     req.body.dateName = snakeCase(req.body.dateName);
 
     const mtoCollectionName = await generateUniqueDigit(6);
@@ -122,7 +124,7 @@ exports.getProjects = async (req, res) => {
         { project: { $regex: search, $options: "i" } },
         { code: { $regex: search, $options: "i" } },
         { owner: { $regex: search, $options: "i" } },
-      ];
+      ]; 
     }
 
     if (req.user.superAdmin !== true) {

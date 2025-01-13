@@ -70,6 +70,7 @@ exports.getMtoById = async (req, res) => {
     const editableHeaders = [
       project.issuedQty,
       project.consumedQty,
+      project.requiredQty,
       project.dateName,
     ];
 
