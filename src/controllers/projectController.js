@@ -4,126 +4,94 @@ const responseHandler = require("../helpers/responseHandler");
 const validations = require("../validations");
 const fs = require("fs");
 const xlsx = require("xlsx");
+const ExcelJS = require('exceljs');
 const { snakeCase } = require("lodash");
 const { generateUniqueDigit } = require("../utils/generateUniqueDigit");
 const { dynamicCollection } = require("../helpers/dynamicCollection");
 
 exports.createProject = async (req, res) => {
   try {
-    console.log("I am in line number 13");
+    console.log("Processing Excel file...");
 
-    const { error } = validations.createProjectSchema.validate(req.body, {
-      abortEarly: true,
-    });
-
-    if (error) {
-      return responseHandler(res, 400, `Invalid input: ${error.message}`);
-    }
-
+    // Ensure file is uploaded
     if (!req.file) {
       return responseHandler(res, 400, "No file uploaded");
     }
 
-    console.log("I am in line number 27");
-
-    req.body.createdBy = req.userId;
-
-    console.log("I am in line number 31");
     const filePath = req.file.path;
-    console.log("I am in line number 33");
-    const workbook = xlsx.readFile(filePath, { cellDates: true });
-    const sheetName = workbook.SheetNames[0];
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(filePath);
+    const sheet = workbook.worksheets[0];
 
-    console.log("I am in line number 37");
-    const dataRows = xlsx.utils
-      .sheet_to_json(workbook.Sheets[sheetName], {
-        header: 1,
-      })
-      .slice(1);
-    console.log("I am in line number 43");
-    const rawHeaders = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], {
-      header: 1,
-    })[0];
-
-    if (!rawHeaders || rawHeaders.length === 0) {
+    if (sheet.rowCount === 0) {
       fs.unlinkSync(filePath);
-      return responseHandler(res, 400, "Excel file has no headers");
+      return responseHandler(res, 400, "Excel file is empty");
     }
-    console.log("I am in line number 52");
-    req.body.headers = rawHeaders;
-    req.body.pk = snakeCase(req.body.pk);
-    req.body.issuedQty = snakeCase(req.body.issuedQty);
-    req.body.consumedQty = snakeCase(req.body.consumedQty);
-    req.body.reqQty = snakeCase(req.body.reqQty);
-    req.body.balanceQty = snakeCase(req.body.balanceQty);
-    req.body.balanceToIssue = snakeCase(req.body.balanceToIssue);
-    req.body.dateName = snakeCase(req.body.dateName);
 
+    // Extract headers from the first row
+    const headers = sheet.getRow(1).values.slice(1); // Assuming first row contains headers
+    req.body.headers = headers.map((header) => snakeCase(header));
+
+    // Generate a unique collection name for the project
     const mtoCollectionName = await generateUniqueDigit(6);
     req.body.collectionName = `mto_${mtoCollectionName}`;
-    console.log("I am in line number 63");
 
+    // Create a new project in the database
     const newProject = await Project.create(req.body);
+    console.log("Project created, starting data insertion...");
 
-    console.log("I am in line number 67");
-    if (newProject && newProject.headers) {
-      const mtoSchemaDefinition = {};
+    // Define MTO schema dynamically based on headers
+    const mtoSchemaDefinition = {};
+    headers.forEach((header) => {
+      const fieldName = snakeCase(header);
+      mtoSchemaDefinition[fieldName] = { type: String }; // Default to string
+    });
+    mtoSchemaDefinition.project = {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Project",
+      required: true,
+    };
 
-      newProject.headers.forEach((header) => {
+    const MtoDynamic = mongoose.model(`mto_${mtoCollectionName}`, new mongoose.Schema(mtoSchemaDefinition, { timestamps: true }));
+
+    // Insert rows in batches
+    const batchSize = 1000;
+    let batch = [];
+
+    sheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+      if (rowNumber === 1) return; // Skip header row
+
+      const rowData = { project: newProject._id };
+      headers.forEach((header, index) => {
         const fieldName = snakeCase(header);
-        if (header.toLowerCase().includes("date")) {
-          mtoSchemaDefinition[fieldName] = { type: Date };
-        } else if (!isNaN(Number(header))) {
-          mtoSchemaDefinition[fieldName] = { type: Number };
-        }
-        mtoSchemaDefinition[fieldName] = { type: String };
+        rowData[fieldName] = row.getCell(index + 1).value || null;
       });
-      console.log("I am in line number 81");
-      mtoSchemaDefinition.project = {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Project",
-        required: true,
-      };
-      console.log("I am in line number 87");
-      const mtoSchema = new mongoose.Schema(mtoSchemaDefinition, {
-        timestamps: true,
-      });
-      const MtoDynamic = mongoose.model(`mto_${mtoCollectionName}`, mtoSchema);
-      console.log("I am in line number 92");
-      const dataToInsert = dataRows.map((row) => {
-        const rowData = { project: newProject._id };
-        console.log("I am in line number 96", rowData);
 
-        newProject.headers.forEach((header, index) => {
-          const fieldName = snakeCase(header);
-          let value = row[index];
+      batch.push(rowData);
 
-          if (mtoSchemaDefinition[fieldName].type === Date && value) {
-            value = new Date(value);
-            if (isNaN(value.getTime())) {
-              value = null;
-            }
-          }
+      if (batch.length === batchSize) {
+        MtoDynamic.insertMany(batch)
+          .then(() => console.log(`Inserted ${batchSize} rows`))
+          .catch((err) => console.error("Batch insert error:", err));
+        batch = []; // Clear batch after insertion
+      }
+    });
 
-          rowData[fieldName] = value;
-        });
-
-        return rowData;
-      });
-      console.log("I am in line number 112");
-      await MtoDynamic.insertMany(dataToInsert);
+    // Insert remaining rows if any
+    if (batch.length > 0) {
+      await MtoDynamic.insertMany(batch);
+      console.log(`Inserted remaining ${batch.length} rows`);
     }
-    console.log("I am in line number 115");
-    if (newProject) {
-      return responseHandler(
-        res,
-        201,
-        "Project created successfully",
-        newProject
-      );
-    }
+
+    console.log("Data inserted successfully");
+    return responseHandler(res, 201, "Project created successfully", newProject);
   } catch (error) {
+    console.error("Error:", error);
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
+  } finally {
+    if (req.file && req.file.path) {
+      fs.unlinkSync(req.file.path); // Clean up uploaded file
+    }
   }
 };
 
