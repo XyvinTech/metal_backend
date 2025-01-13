@@ -10,6 +10,8 @@ const { dynamicCollection } = require("../helpers/dynamicCollection");
 
 exports.createProject = async (req, res) => {
   try {
+    console.log("I am in line number 13");
+    
     const { error } = validations.createProjectSchema.validate(req.body, {
       abortEarly: true,
     });
@@ -22,8 +24,13 @@ exports.createProject = async (req, res) => {
       return responseHandler(res, 400, "No file uploaded");
     }
 
+    console.log("I am in line number 27");
+    
     req.body.createdBy = req.userId;
+
+    console.log("I am in line number 31");
     const filePath = req.file.path;
+    console.log("I am in line number 33");
     const workbook = xlsx.readFile(filePath, { cellDates: true });
     const sheetName = workbook.SheetNames[0];
 
