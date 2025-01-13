@@ -4,94 +4,140 @@ const responseHandler = require("../helpers/responseHandler");
 const validations = require("../validations");
 const fs = require("fs");
 const xlsx = require("xlsx");
-const ExcelJS = require('exceljs');
 const { snakeCase } = require("lodash");
 const { generateUniqueDigit } = require("../utils/generateUniqueDigit");
 const { dynamicCollection } = require("../helpers/dynamicCollection");
 
 exports.createProject = async (req, res) => {
   try {
-    console.log("Processing Excel file...");
+    const { error } = validations.createProjectSchema.validate(req.body, {
+      abortEarly: true,
+    });
 
-    // Ensure file is uploaded
+    if (error) {
+      return responseHandler(res, 400, `Invalid input: ${error.message}`);
+    }
+
     if (!req.file) {
       return responseHandler(res, 400, "No file uploaded");
     }
 
-    const filePath = req.file.path;
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile(filePath);
-    const sheet = workbook.worksheets[0];
+    req.body.createdBy = req.userId;
 
-    if (sheet.rowCount === 0) {
+    const filePath = req.file.path;
+    const workbook = xlsx.readFile(filePath, { cellDates: true });
+    const sheetName = workbook.SheetNames[0];
+
+    const dataRows = xlsx.utils
+      .sheet_to_json(workbook.Sheets[sheetName], { header: 1 })
+      .slice(1)
+      .filter((row) =>
+        row.some(
+          (cell) =>
+            cell !== undefined && cell !== null && String(cell).trim() !== ""
+        )
+      );
+
+    const rawHeaders = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], {
+      header: 1,
+    })[0];
+
+    if (!rawHeaders || rawHeaders.length === 0) {
       fs.unlinkSync(filePath);
-      return responseHandler(res, 400, "Excel file is empty");
+      return responseHandler(res, 400, "Excel file has no headers");
     }
 
-    // Extract headers from the first row
-    const headers = sheet.getRow(1).values.slice(1); // Assuming first row contains headers
-    req.body.headers = headers.map((header) => snakeCase(header));
+    req.body.headers = rawHeaders;
+    req.body.pk = snakeCase(req.body.pk);
+    req.body.issuedQty = snakeCase(req.body.issuedQty);
+    req.body.consumedQty = snakeCase(req.body.consumedQty);
+    req.body.reqQty = snakeCase(req.body.reqQty);
+    req.body.balanceQty = snakeCase(req.body.balanceQty);
+    req.body.balanceToIssue = snakeCase(req.body.balanceToIssue);
+    req.body.dateName = snakeCase(req.body.dateName);
 
-    // Generate a unique collection name for the project
     const mtoCollectionName = await generateUniqueDigit(6);
     req.body.collectionName = `mto_${mtoCollectionName}`;
 
-    // Create a new project in the database
     const newProject = await Project.create(req.body);
-    console.log("Project created, starting data insertion...");
 
-    // Define MTO schema dynamically based on headers
-    const mtoSchemaDefinition = {};
-    headers.forEach((header) => {
-      const fieldName = snakeCase(header);
-      mtoSchemaDefinition[fieldName] = { type: String }; // Default to string
-    });
-    mtoSchemaDefinition.project = {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Project",
-      required: true,
-    };
+    if (newProject && newProject.headers) {
+      const mtoSchemaDefinition = {};
 
-    const MtoDynamic = mongoose.model(`mto_${mtoCollectionName}`, new mongoose.Schema(mtoSchemaDefinition, { timestamps: true }));
-
-    // Insert rows in batches
-    const batchSize = 1000;
-    let batch = [];
-
-    sheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
-      if (rowNumber === 1) return; // Skip header row
-
-      const rowData = { project: newProject._id };
-      headers.forEach((header, index) => {
+      newProject.headers.forEach((header) => {
         const fieldName = snakeCase(header);
-        rowData[fieldName] = row.getCell(index + 1).value || null;
+        if (header.toLowerCase().includes("date")) {
+          mtoSchemaDefinition[fieldName] = { type: Date };
+        } else if (!isNaN(Number(header))) {
+          mtoSchemaDefinition[fieldName] = { type: Number };
+        }
+        mtoSchemaDefinition[fieldName] = { type: String };
       });
 
-      batch.push(rowData);
+      mtoSchemaDefinition.project = {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Project",
+        required: true,
+      };
 
-      if (batch.length === batchSize) {
-        MtoDynamic.insertMany(batch)
-          .then(() => console.log(`Inserted ${batchSize} rows`))
-          .catch((err) => console.error("Batch insert error:", err));
-        batch = []; // Clear batch after insertion
+      const mtoSchema = new mongoose.Schema(mtoSchemaDefinition, {
+        timestamps: true,
+      });
+      const MtoDynamic = mongoose.model(`mto_${mtoCollectionName}`, mtoSchema);
+
+      const BATCH_SIZE = 10000;
+      let processedRows = 0;
+
+      while (processedRows < dataRows.length) {
+        const currentBatch = dataRows.slice(
+          processedRows,
+          processedRows + BATCH_SIZE
+        );
+        // const currentBatch = dataRows
+        //   .slice(processedRows, processedRows + BATCH_SIZE)
+        //   .filter((row) => {
+        //     return row.some(
+        //       (cell) =>
+        //         cell !== undefined &&
+        //         cell !== null &&
+        //         String(cell).trim() !== ""
+        //     );
+        //   });
+        const dataToInsert = currentBatch.map((row) => {
+          const rowData = { project: newProject._id };
+
+          newProject.headers.forEach((header, index) => {
+            const fieldName = snakeCase(header);
+            let value = row[index];
+
+            if (mtoSchemaDefinition[fieldName].type === Date && value) {
+              value = new Date(value);
+              if (isNaN(value.getTime())) {
+                value = null;
+              }
+            }
+
+            rowData[fieldName] = value;
+          });
+
+          return rowData;
+        });
+
+        await MtoDynamic.insertMany(dataToInsert);
+        console.log(`Inserted batch of ${dataToInsert.length} rows`);
+        processedRows += BATCH_SIZE;
       }
-    });
-
-    // Insert remaining rows if any
-    if (batch.length > 0) {
-      await MtoDynamic.insertMany(batch);
-      console.log(`Inserted remaining ${batch.length} rows`);
     }
-
-    console.log("Data inserted successfully");
-    return responseHandler(res, 201, "Project created successfully", newProject);
+    if (newProject) {
+      return responseHandler(
+        res,
+        201,
+        "Project created successfully",
+        newProject
+      );
+    }
   } catch (error) {
-    console.error("Error:", error);
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
-  } finally {
-    if (req.file && req.file.path) {
-      fs.unlinkSync(req.file.path); // Clean up uploaded file
-    }
   }
 };
 
