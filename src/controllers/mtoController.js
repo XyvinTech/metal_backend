@@ -239,7 +239,7 @@ exports.downloadMtoCsv = async (req, res) => {
 exports.getSummery = async (req, res) => {
   try {
     const { projectId } = req.params;
-    let { selectedHeaders = [], download } = req.query;
+    let { selectedHeaders = [], download = false} = req.query;
 
     if (!projectId) {
       return responseHandler(res, 400, "Project ID is required");

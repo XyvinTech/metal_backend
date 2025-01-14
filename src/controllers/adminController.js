@@ -415,8 +415,7 @@ exports.getDashboardData = async (req, res) => {
     const changesCount = await Log.countDocuments(adminFilter);
     const alertCount = await Alert.countDocuments({ project:{ $in: req.user.project }});
 
-   
-    const recentAlerts = await Alert.find(alertFilter)
+    const recentAlerts = await Alert.find(adminFilter)
       .populate("project", "project code")
       .sort({ createdAt: -1 })
       .limit(5)
@@ -429,6 +428,7 @@ exports.getDashboardData = async (req, res) => {
         projectCode: data?.project?.code || "",
       };
     });
+
     const responsePayload = {
       projectCount,
       adminCount,
