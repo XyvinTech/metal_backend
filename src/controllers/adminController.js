@@ -474,11 +474,11 @@ exports.forgetPassword = async (req, res) => {
 
 exports.changePassword = async (req, res) => {
   try {
-    const { otp, password } = req.body;
+    const { email, otp, password } = req.body;
     if (!otp || !password) {
-      return responseHandler(res, 400, "OTP, and password are required");
+      return responseHandler(res, 400, "Email, OTP, and password are required");
     }
-    const admin = await Admin.findById(req.userId);
+    const admin = await Admin.findOne({ email: email });
     if (!admin) {
       return responseHandler(res, 404, "Admin not found");
     }
