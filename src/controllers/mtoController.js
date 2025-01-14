@@ -239,6 +239,10 @@ exports.downloadMtoCsv = async (req, res) => {
 exports.getSummery = async (req, res) => {
   try {
     const { projectId } = req.params;
+    const { page = 1, limit = 10 } = req.query;
+
+    const skipCount = (page - 1) * limit;
+
     let { selectedHeaders = [], download = false} = req.query;
 
     if (!projectId) {
@@ -294,6 +298,8 @@ exports.getSummery = async (req, res) => {
 
     const mtoData = await MtoDynamic.find({}, projection)
       .sort({ createdAt: -1, _id: 1 })
+      .skip(skipCount)
+      .limit(limit)
       .lean();
 
     const totalCount = await MtoDynamic.countDocuments();
