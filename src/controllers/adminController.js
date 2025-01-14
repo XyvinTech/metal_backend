@@ -386,7 +386,7 @@ exports.downloadAlerts = async (req, res) => {
 exports.getDashboardData = async (req, res) => {
   try {
     const adminId = req.userId;
-    const isSuperAdmin = req.isSuperAdmin;
+    const isSuperAdmin = req.user.superAdmin;
 
     const adminFilter = isSuperAdmin ? {} : { admin: adminId };
 
