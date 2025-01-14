@@ -389,12 +389,11 @@ exports.getDashboardData = async (req, res) => {
     const isSuperAdmin = req.isSuperAdmin;
 
     const adminFilter = isSuperAdmin ? {} : { admin: adminId };
-    const alertFilter = isSuperAdmin ? {} : { admin: adminId };
 
-    let projectCount = await Project.countDocuments();
+    let projectCount = await req.user.project?.length;
 
-    if (!isSuperAdmin) {
-      projectCount = await req.user.project?.length
+    if (isSuperAdmin) {
+      projectCount = await Project.countDocuments() 
     }
 
     const adminCount = await Admin.countDocuments();
