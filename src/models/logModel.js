@@ -22,7 +22,6 @@ const logSchema = mongoose.Schema(
       ref: "Project",
       required: true,
     },
-   
   },
   {
     timestamps: true,
