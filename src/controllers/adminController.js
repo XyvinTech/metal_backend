@@ -230,9 +230,8 @@ exports.getAllLogs = async (req, res) => {
     const { pageNo = 1, limit = 10 } = req.query;
     const skipCount = limit * (pageNo - 1);
 
-    const adminId = req.userId; 
+    const adminId = req.userId;
     const isSuperAdmin = req.isSuperAdmin;
-
 
     let filter = { _id: { $ne: "66cef136282563d7bb086e30" } };
 
@@ -287,7 +286,6 @@ exports.getAlerts = async (req, res) => {
       .sort({ createdAt: -1, _id: 1 })
       .populate("project", "project")
       .lean();
-
 
     const mappedData = await Promise.all(
       alerts.map(async (alert) => {
@@ -393,7 +391,7 @@ exports.getDashboardData = async (req, res) => {
     let projectCount = await req.user.project?.length;
 
     if (isSuperAdmin) {
-      projectCount = await Project.countDocuments() 
+      projectCount = await Project.countDocuments();
     }
 
     const adminCount = await Admin.countDocuments();
@@ -433,6 +431,38 @@ exports.getDashboardData = async (req, res) => {
       };
     });
 
+    const startOfWeek = new Date();
+    startOfWeek.setDate(startOfWeek.getDate() - 6);
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const logs = await Log.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: startOfWeek },
+        },
+      },
+      {
+        $group: {
+          _id: { $dayOfWeek: "$createdAt" },
+          count: { $sum: 1 },
+        },
+      },
+      {
+        $sort: { _id: 1 },
+      },
+    ]);
+
+    const dayMap = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+    const chartData = Array(7)
+      .fill(0)
+      .map((_, index) => {
+        const log = logs.find((l) => l._id === index + 1);
+        return {
+          day: dayMap[index],
+          value: log ? log.count : 0,
+        };
+      });
+
     const responsePayload = {
       projectCount,
       adminCount,
@@ -440,6 +470,7 @@ exports.getDashboardData = async (req, res) => {
       alertCount,
       recentActivity,
       alertData,
+      chartData
     };
 
     res.status(200).json({
@@ -453,8 +484,6 @@ exports.getDashboardData = async (req, res) => {
     });
   }
 };
-
-
 
 exports.forgetPassword = async (req, res) => {
   try {
