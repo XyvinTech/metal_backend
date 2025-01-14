@@ -164,7 +164,7 @@ exports.updateMto = async (req, res) => {
       project: findMto.project,
       oldPayload,
       newPayload: updatedData,
-      host: req.headers.host,
+      host: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
       agent: req.headers["user-agent"],
     });
 
@@ -436,7 +436,7 @@ exports.bulkUpdate = async (req, res) => {
             [project.issuedQty]: newRecord[project.issuedQty],
             [project.dateName]: newRecord[project.dateName],
           },
-          host: req.headers.host,
+          host: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
           agent: req.headers["user-agent"],
         });
 

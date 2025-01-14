@@ -271,13 +271,6 @@ exports.getAllLogs = async (req, res) => {
   }
 };
 
-
-
-
-
-
-
-
 exports.getAlerts = async (req, res) => {
   try {
     const { page = 1, limit = 10 } = req.query;
@@ -399,9 +392,7 @@ exports.getDashboardData = async (req, res) => {
     const adminId = req.userId;
     const isSuperAdmin = req.isSuperAdmin;
 
-    const adminFilter = isSuperAdmin
-      ? {}
-      : { admin: adminId };
+    const adminFilter = isSuperAdmin ? {} : { admin: adminId };
 
     const projectCount = await Project.countDocuments();
     const adminCount = await Admin.countDocuments();
