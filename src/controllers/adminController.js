@@ -8,6 +8,9 @@ const Alert = require("../models/alertModel");
 const { createObjectCsvStringifier } = require("csv-writer");
 const Project = require("../models/projectModel");
 const { dynamicCollection } = require("../helpers/dynamicCollection");
+const { generateRandomPassword } = require("../utils/generateRandomPassword");
+const sendMail = require("../utils/sendMail");
+const { generateOTP } = require("../utils/generateOTP");
 
 exports.loginAdmin = async (req, res) => {
   try {
@@ -67,8 +70,22 @@ exports.createAdmin = async (req, res) => {
         `Admin with this email or phone already exists`
       );
 
-    const hashedPassword = await hashPassword(req.body.password);
+    const generatedPassword = generateRandomPassword();
+
+    const hashedPassword = await hashPassword(generatedPassword);
     req.body.password = hashedPassword;
+
+    const data = {
+      to: req.body.email,
+      subject: "Admin Registration Notification",
+      text: `Hello, ${req.body.name}. 
+      You have been registered as an admin on the platform. 
+      Please use the following credentials to log in: Email: ${req.body.email} Password: ${generatedPassword} 
+      Thank you for joining us! 
+      Best regards, The Admin Team`,
+    };
+
+    await sendMail(data);
 
     const newAdmin = await Admin.create(req.body);
 
@@ -221,7 +238,7 @@ exports.getAllLogs = async (req, res) => {
 
     const data = await Log.find(filter)
       .populate("admin", "name email")
-      .populate("project" , "project")
+      .populate("project", "project")
       .skip(skipCount)
       .limit(Number(limit))
       .sort({ createdAt: -1, _id: 1 })
@@ -418,5 +435,61 @@ exports.getDashboardData = async (req, res) => {
     res.status(500).json({
       message: `Internal Server Error: ${error.message}`,
     });
+  }
+};
+
+exports.forgetPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return responseHandler(res, 400, "Email is required");
+    }
+    const admin = await Admin.findOne({ email: email });
+    if (!admin) {
+      return responseHandler(res, 404, "Admin not found");
+    }
+    const generatedOTP = generateOTP(5);
+
+    admin.otp = generatedOTP;
+    await admin.save();
+
+    const data = {
+      to: email,
+      subject: "Password Reset OTP",
+      text: `Hello, ${admin.name}. 
+      We have received a request to reset your password. 
+      Your OTP is: ${generatedOTP}
+      Thank you for joining us! 
+      Best regards, The Admin Team`,
+    };
+
+    await sendMail(data);
+
+    return responseHandler(res, 200, "OTP sent successfully");
+  } catch (error) {
+    console.error("Error sending email:", error.message);
+    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
+  }
+};
+
+exports.changePassword = async (req, res) => {
+  try {
+    const { otp, password } = req.body;
+    if (!otp || !password) {
+      return responseHandler(res, 400, "OTP, and password are required");
+    }
+    const admin = await Admin.findById(req.userId);
+    if (!admin) {
+      return responseHandler(res, 404, "Admin not found");
+    }
+    if (admin.otp !== otp) {
+      return responseHandler(res, 400, "Invalid OTP");
+    }
+    admin.password = await hashPassword(password);
+    admin.otp = null;
+    await admin.save();
+    return responseHandler(res, 200, "Password changed successfully");
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };

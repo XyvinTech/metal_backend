@@ -4,7 +4,10 @@ const authVerify = require("../middlewares/authVerify");
 const adminRoute = express.Router();
 
 adminRoute.post("/login", adminController.loginAdmin);
+adminRoute.post("/forget-password", adminController.forgetPassword);
+
 adminRoute.use(authVerify);
+adminRoute.put("/change-password", adminController.changePassword);
 adminRoute
   .route("/")
   .post(adminController.createAdmin)
