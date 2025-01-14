@@ -452,3 +452,60 @@ exports.getDashboardData = async (req, res) => {
   }
 };
 
+
+
+exports.forgetPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return responseHandler(res, 400, "Email is required");
+    }
+    const admin = await Admin.findOne({ email: email });
+    if (!admin) {
+      return responseHandler(res, 404, "Admin not found");
+    }
+    const generatedOTP = generateOTP(5);
+
+    admin.otp = generatedOTP;
+    await admin.save();
+
+    const data = {
+      to: email,
+      subject: "Password Reset OTP",
+      text: `Hello, ${admin.name}. 
+      We have received a request to reset your password. 
+      Your OTP is: ${generatedOTP}
+      Thank you for joining us! 
+      Best regards, The Admin Team`,
+    };
+
+    await sendMail(data);
+
+    return responseHandler(res, 200, "OTP sent successfully");
+  } catch (error) {
+    console.error("Error sending email:", error.message);
+    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
+  }
+};
+
+exports.changePassword = async (req, res) => {
+  try {
+    const { email, otp, password } = req.body;
+    if (!otp || !password) {
+      return responseHandler(res, 400, "Email, OTP, and password are required");
+    }
+    const admin = await Admin.findOne({ email: email });
+    if (!admin) {
+      return responseHandler(res, 404, "Admin not found");
+    }
+    if (admin.otp !== otp) {
+      return responseHandler(res, 400, "Invalid OTP");
+    }
+    admin.password = await hashPassword(password);
+    admin.otp = null;
+    await admin.save();
+    return responseHandler(res, 200, "Password changed successfully");
+  } catch (error) {
+    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
+  }
+};
