@@ -230,9 +230,16 @@ exports.getAllLogs = async (req, res) => {
     const { pageNo = 1, limit = 10 } = req.query;
     const skipCount = limit * (pageNo - 1);
 
-    const filter = {
-      _id: { $ne: "66cef136282563d7bb086e30" },
-    };
+    const adminId = req.userId; // Assuming userId is stored in req.userId
+    const isSuperAdmin = req.isSuperAdmin; // Assuming isSuperAdmin is part of the request (this could be determined via JWT or session)
+
+    // Initialize filter
+    let filter = { _id: { $ne: "66cef136282563d7bb086e30" } };
+
+    // If the user is not a superAdmin, filter logs by their userId
+    if (!isSuperAdmin) {
+      filter.admin = adminId;
+    }
 
     const totalCount = await Log.countDocuments(filter);
 
@@ -243,6 +250,7 @@ exports.getAllLogs = async (req, res) => {
       .limit(Number(limit))
       .sort({ createdAt: -1, _id: 1 })
       .lean();
+
     const mappedData = data.map((logs) => {
       return {
         ...logs,
@@ -250,6 +258,7 @@ exports.getAllLogs = async (req, res) => {
         projectName: logs?.project?.project || "",
       };
     });
+
     return responseHandler(
       res,
       200,
@@ -261,6 +270,13 @@ exports.getAllLogs = async (req, res) => {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
+
+
+
+
+
+
+
 
 exports.getAlerts = async (req, res) => {
   try {
@@ -380,10 +396,17 @@ exports.downloadAlerts = async (req, res) => {
 
 exports.getDashboardData = async (req, res) => {
   try {
+    const adminId = req.userId;
+    const isSuperAdmin = req.isSuperAdmin;
+
+    const adminFilter = isSuperAdmin
+      ? {}
+      : { admin: adminId };
+
     const projectCount = await Project.countDocuments();
     const adminCount = await Admin.countDocuments();
 
-    const recentLogs = await Log.find()
+    const recentLogs = await Log.find(adminFilter)
       .populate("admin", "name email")
       .populate("project", "project code")
       .sort({ createdAt: -1 })
@@ -400,10 +423,10 @@ exports.getDashboardData = async (req, res) => {
       };
     });
 
-    const changesCount = await Log.countDocuments();
+    const changesCount = await Log.countDocuments(adminFilter);
     const alertCount = await Alert.countDocuments();
 
-    const recentAlerts = await Alert.find()
+    const recentAlerts = await Alert.find(adminFilter)
       .populate("project", "project code")
       .sort({ createdAt: -1 })
       .limit(5)
@@ -438,58 +461,86 @@ exports.getDashboardData = async (req, res) => {
   }
 };
 
-exports.forgetPassword = async (req, res) => {
+
+
+exports.getDashboardDataByAdmin = async (req, res) => {
   try {
-    const { email } = req.body;
-    if (!email) {
-      return responseHandler(res, 400, "Email is required");
-    }
-    const admin = await Admin.findOne({ email: email });
+    const adminId = req.userId;
+    console.log(adminId);
+
+    const admin = await Admin.findById(adminId).lean();
     if (!admin) {
-      return responseHandler(res, 404, "Admin not found");
+      return res.status(404).json({ message: "Admin not found" });
     }
-    const generatedOTP = generateOTP(5);
 
-    admin.otp = generatedOTP;
-    await admin.save();
+    const projectIds = admin.project;
+    const projectCount = projectIds.length;
 
-    const data = {
-      to: email,
-      subject: "Password Reset OTP",
-      text: `Hello, ${admin.name}. 
-      We have received a request to reset your password. 
-      Your OTP is: ${generatedOTP}
-      Thank you for joining us! 
-      Best regards, The Admin Team`,
+    if (projectCount === 0) {
+      return res.status(200).json({
+        message: "No projects found for this admin",
+        data: {
+          adminName: admin.name,
+          email: admin.email,
+          phone: admin.phone,
+          projectCount: 0,
+          changesCount: 0,
+          alertCount: 0,
+          recentActivity: [],
+          alertData: [],
+        },
+      });
+    }
+
+    const [recentLogs, recentAlerts, changesCount, alertCount] = await Promise.all([
+      Log.find({ project: { $in: projectIds } })
+        .populate("admin", "name email")
+        .populate("project", "project code")
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .lean(),
+
+      Alert.find({ project: { $in: projectIds } })
+        .populate("project", "project code")
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .lean(),
+
+      Log.countDocuments({ project: { $in: projectIds } }),
+      Alert.countDocuments({ project: { $in: projectIds } }),
+    ]);
+
+    const recentActivity = recentLogs.map((log) => ({
+      ...log,
+      adminName: log.admin?.name || "",
+      adminMail: log.admin?.email || "",
+      projectName: log.project?.project || "",
+      projectCode: log.project?.code || "",
+    }));
+
+    const alertData = recentAlerts.map((alert) => ({
+      ...alert,
+      projectName: alert.project?.project || "",
+      projectCode: alert.project?.code || "",
+    }));
+
+    const responsePayload = {
+      adminName: admin.name,
+      email: admin.email,
+      phone: admin.phone,
+      projectCount,
+      changesCount,
+      alertCount,
+      recentActivity,
+      alertData,
     };
 
-    await sendMail(data);
-
-    return responseHandler(res, 200, "OTP sent successfully");
+    res.status(200).json({
+      message: "Dashboard data fetched successfully",
+      data: responsePayload,
+    });
   } catch (error) {
-    console.error("Error sending email:", error.message);
-    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
-  }
-};
-
-exports.changePassword = async (req, res) => {
-  try {
-    const { email, otp, password } = req.body;
-    if (!otp || !password) {
-      return responseHandler(res, 400, "Email, OTP, and password are required");
-    }
-    const admin = await Admin.findOne({ email: email });
-    if (!admin) {
-      return responseHandler(res, 404, "Admin not found");
-    }
-    if (admin.otp !== otp) {
-      return responseHandler(res, 400, "Invalid OTP");
-    }
-    admin.password = await hashPassword(password);
-    admin.otp = null;
-    await admin.save();
-    return responseHandler(res, 200, "Password changed successfully");
-  } catch (error) {
-    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
+    console.error("Error fetching dashboard data by admin ID:", error.message);
+    res.status(500).json({ message: `Internal Server Error: ${error.message}` });
   }
 };

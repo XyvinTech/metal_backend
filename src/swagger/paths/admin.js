@@ -249,13 +249,12 @@
  *         description: Internal Server Error
  */
 
-
 /**
  * @swagger
  * /admin/log:
  *   get:
  *     summary: Retrieve all logs
- *     description: Fetch all logs with details about associated admin and project, if available.
+ *     description: Fetch all logs with details about the associated admin and project. If the user is a superAdmin, all logs are returned. If the user is not a superAdmin, only logs related to their adminId are returned.
  *     tags:
  *       - Admin
  *     security:
@@ -291,52 +290,11 @@
  *                           title:
  *                             type: string
  *                             example: Project Alpha
- *                       host:
- *                         type: string
- *                         example: localhost
- *                       agent:
- *                         type: string
- *                         example: Mozilla/5.0
- *                       oldIssuedQtyAss:
- *                         type: number
- *                         example: 5
- *                       oldIssuedDate:
- *                         type: string
- *                         format: date-time
- *                         example: 2024-12-21T10:00:00.000Z
- *                       oldConsumedQty:
- *                         type: number
- *                         example: 3
- *                       newIssuedQtyAss:
- *                         type: number
- *                         example: 10
- *                       newIssuedDate:
- *                         type: string
- *                         format: date-time
- *                         example: 2024-12-22T12:00:00.000Z
- *                       newConsumedQty:
- *                         type: number
- *                         example: 8
- *                       description:
- *                         type: string
- *                         example: Updated project log details
- *                       areaLineSheetIdent:
- *                         type: string
- *                         example: ALSI-12345
- *                       createdAt:
- *                         type: string
- *                         format: date-time
- *                         example: 2024-12-20T10:00:00.000Z
- *                       updatedAt:
- *                         type: string
- *                         format: date-time
- *                         example: 2024-12-21T15:00:00.000Z
  *       404:
  *         description: No logs found
  *       500:
  *         description: Internal server error
  */
-
 
 /**
  * @swagger
@@ -487,12 +445,73 @@
  * /admin/dashboard:
  *   get:
  *     summary: Fetch Admin Dashboard Data
- *     description: API endpoint to fetch total project count, admin count, changes made, and recent activity logs.
+ *     description: API endpoint to fetch total project count, admin count, changes made, and recent activity logs. If the user is a superAdmin, all data is returned; otherwise, data related to the logged-in admin is fetched.
  *     tags:
  *       - Admin
+ *     security:
+ *       - BearerAuth: []  # Assuming you are using Bearer token authentication
  *     responses:
  *       200:
  *         description: Dashboard data fetched successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Dashboard data fetched successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     projectCount:
+ *                       type: integer
+ *                       example: 100
+ *                     adminCount:
+ *                       type: integer
+ *                       example: 10
+ *                     changesCount:
+ *                       type: integer
+ *                       example: 50
+ *                     alertCount:
+ *                       type: integer
+ *                       example: 5
+ *                     recentActivity:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           adminName:
+ *                             type: string
+ *                             example: "John Doe"
+ *                           adminMail:
+ *                             type: string
+ *                             example: "john.doe@example.com"
+ *                           projectName:
+ *                             type: string
+ *                             example: "Project Alpha"
+ *                           projectCode:
+ *                             type: string
+ *                             example: "PA123"
+ *                           createdAt:
+ *                             type: string
+ *                             format: date-time
+ *                             example: "2024-12-20T10:00:00.000Z"
+ *                     alertData:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           projectName:
+ *                             type: string
+ *                             example: "Project Beta"
+ *                           projectCode:
+ *                             type: string
+ *                             example: "PB123"
+ *                           createdAt:
+ *                             type: string
+ *                             format: date-time
+ *                             example: "2024-12-22T12:00:00.000Z"
  *       500:
  *         description: Internal server error
  *         content:
@@ -503,4 +522,91 @@
  *                 message:
  *                   type: string
  *                   example: "Internal Server Error: Database connection failed"
+ */
+
+/**
+ * @swagger
+ * /admin/log:
+ *   get:
+ *     summary: Retrieve all logs
+ *     description: Fetch all logs with details about the associated admin and project. If the user is a superAdmin, all logs are returned. If the user is not a superAdmin, only logs related to their adminId are returned.
+ *     tags:
+ *       - Admin
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Logs retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Logs retrieved successfully
+ *                 logs:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       admin:
+ *                         type: object
+ *                         properties:
+ *                           name:
+ *                             type: string
+ *                             example: John Doe
+ *                           email:
+ *                             type: string
+ *                             example: john.doe@example.com
+ *                       project:
+ *                         type: object
+ *                         properties:
+ *                           title:
+ *                             type: string
+ *                             example: Project Alpha
+ *                       host:
+ *                         type: string
+ *                         example: localhost
+ *                       agent:
+ *                         type: string
+ *                         example: Mozilla/5.0
+ *                       oldIssuedQtyAss:
+ *                         type: number
+ *                         example: 5
+ *                       oldIssuedDate:
+ *                         type: string
+ *                         format: date-time
+ *                         example: 2024-12-21T10:00:00.000Z
+ *                       oldConsumedQty:
+ *                         type: number
+ *                         example: 3
+ *                       newIssuedQtyAss:
+ *                         type: number
+ *                         example: 10
+ *                       newIssuedDate:
+ *                         type: string
+ *                         format: date-time
+ *                         example: 2024-12-22T12:00:00.000Z
+ *                       newConsumedQty:
+ *                         type: number
+ *                         example: 8
+ *                       description:
+ *                         type: string
+ *                         example: Updated project log details
+ *                       areaLineSheetIdent:
+ *                         type: string
+ *                         example: ALSI-12345
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                         example: 2024-12-20T10:00:00.000Z
+ *                       updatedAt:
+ *                         type: string
+ *                         format: date-time
+ *                         example: 2024-12-21T15:00:00.000Z
+ *       404:
+ *         description: No logs found
+ *       500:
+ *         description: Internal server error
  */
