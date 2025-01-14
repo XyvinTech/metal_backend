@@ -325,7 +325,7 @@ exports.getSummery = async (req, res) => {
       return responseHandler(
         res,
         404,
-        "No MTO entries found for the selected headers",
+        "No MTO entries found for the selected headers.",
         responsePayload
       );
     }
@@ -342,7 +342,7 @@ exports.getSummery = async (req, res) => {
     return responseHandler(
       res,
       200,
-      "Headers and MTO data retrieved  successfully",
+      "Headers and MTO data retrieved successfully.",
       responsePayload
     );
   } catch (error) {
