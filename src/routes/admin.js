@@ -19,7 +19,7 @@ adminRoute
   adminRoute.get("/alert/:id", adminController.getAlerts);
   adminRoute.get('/alerts/download/:id', adminController.downloadAlerts);
   adminRoute.get('/dashboard', adminController.getDashboardData);
-  adminRoute.get('/dashboardUser', adminController.getDashboardDataByAdmin);
+
   
   adminRoute
     .route("/profile/:id")
