@@ -14,6 +14,7 @@ mtoRoute
 
 mtoRoute.get("/summery/:projectId", mtoController.getSummery);
 mtoRoute.get("/download/:projectId", mtoController.downloadMtoCsv);
+mtoRoute.get("/summery/download/:projectId", mtoController.downloadSummery);
 
 mtoRoute.put("/bulkupdate", upload.single("file"), mtoController.bulkUpdate);
 

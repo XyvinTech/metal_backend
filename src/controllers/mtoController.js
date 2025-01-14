@@ -237,7 +237,6 @@ exports.downloadMtoCsv = async (req, res) => {
   }
 };
 
-
 exports.getSummery = async (req, res) => {
   try {
     const { projectId } = req.params;
@@ -335,8 +334,7 @@ exports.getSummery = async (req, res) => {
     if (download === "true") {
       res.header("Content-Type", "text/csv");
       res.attachment(`${project.project}_mto_data.csv`);
-
-      res.write(selectedHeadersSnakeCase.join(",") + "\n"); 
+      res.write(selectedHeadersSnakeCase.join(",") + "\n");
 
       const BATCH_SIZE = 10000;
       let processedCount = 0;
@@ -369,6 +367,7 @@ exports.getSummery = async (req, res) => {
       responsePayload
     );
   } catch (error) {
+    console.error("Error fetching summary:", error.message);
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
@@ -501,6 +500,100 @@ exports.bulkUpdate = async (req, res) => {
     if (fs.existsSync(req.file?.path)) {
       fs.unlinkSync(req.file.path);
     }
+    return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
+  }
+};
+
+exports.downloadSummery = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    let { selectedHeaders = [] } = req.query;
+
+    if (!projectId) {
+      return responseHandler(res, 400, "Project ID is required");
+    }
+
+    const project = await Project.findById(projectId);
+
+    if (!project) {
+      return responseHandler(res, 404, "Project not found");
+    }
+
+    let headers = project.headers;
+    headers = headers.map((header) => snakeCase(header));
+
+    if (!headers || headers.length === 0) {
+      return responseHandler(res, 404, "No headers found for the project");
+    }
+
+    if (selectedHeaders.length === 0) {
+      selectedHeaders = project.selectedHeaders;
+    }
+
+    const selectedHeadersArray = Array.isArray(selectedHeaders)
+      ? selectedHeaders
+      : selectedHeaders.split(",");
+
+    const selectedHeadersSnakeCase = selectedHeadersArray.map(snakeCase);
+
+    const invalidHeaders = selectedHeadersSnakeCase.filter(
+      (header) => header && !headers.includes(header)
+    );
+
+    if (invalidHeaders.length > 0) {
+      return responseHandler(
+        res,
+        400,
+        `Invalid headers selected: ${invalidHeaders.join(", ")}`
+      );
+    }
+
+    if (selectedHeadersSnakeCase.length > 0) {
+      project.selectedHeaders = selectedHeadersSnakeCase;
+      await project.save();
+    }
+
+    const MtoDynamic = await dynamicCollection(project.collectionName);
+
+    const projection = selectedHeadersSnakeCase.reduce((acc, header) => {
+      acc[header] = 1;
+      return acc;
+    }, {});
+
+    const mtoData = await MtoDynamic.find({}, projection).lean();
+
+    if (!selectedHeadersSnakeCase.length) {
+      return responseHandler(
+        res,
+        200,
+        "Headers retrieved successfully. Please select headers to fetch data."
+      );
+    }
+
+    if (!mtoData || mtoData.length === 0) {
+      return responseHandler(
+        res,
+        404,
+        "No MTO entries found for the selected headers."
+      );
+    }
+
+    res.header("Content-Type", "text/csv");
+    res.attachment(`${project.project}_mto_data.csv`);
+
+    res.write(selectedHeadersSnakeCase.join(",") + "\n");
+
+    mtoData.forEach((doc) => {
+      const row = selectedHeadersSnakeCase.map((field) => {
+        const value = doc[field];
+        return value !== undefined && value !== null ? `"${value}"` : "";
+      });
+      res.write(row.join(",") + "\n");
+    });
+
+    return res.end(); 
+  } catch (error) {
+    console.error("Error downloading summary:", error.message);
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
