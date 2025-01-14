@@ -389,6 +389,7 @@ exports.getDashboardData = async (req, res) => {
     const isSuperAdmin = req.isSuperAdmin;
 
     const adminFilter = isSuperAdmin ? {} : { admin: adminId };
+    const alertFilter = isSuperAdmin ? {} : { admin: adminId };
 
     const projectCount = (await Admin.findById(adminId)).project.length;
 
@@ -414,7 +415,8 @@ exports.getDashboardData = async (req, res) => {
     const changesCount = await Log.countDocuments(adminFilter);
     const alertCount = await Alert.countDocuments({ project:{ $in: req.user.project }});
 
-    const recentAlerts = await Alert.find(adminFilter)
+   
+    const recentAlerts = await Alert.find(alertFilter)
       .populate("project", "project code")
       .sort({ createdAt: -1 })
       .limit(5)
@@ -427,7 +429,6 @@ exports.getDashboardData = async (req, res) => {
         projectCode: data?.project?.code || "",
       };
     });
-
     const responsePayload = {
       projectCount,
       adminCount,
