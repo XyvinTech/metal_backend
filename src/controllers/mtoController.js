@@ -164,7 +164,7 @@ exports.updateMto = async (req, res) => {
       project: findMto.project,
       oldPayload,
       newPayload: updatedData,
-      host: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
+      host: req.headers["x-forwarded-for"] || req.connection.remoteAddress,
       agent: req.headers["user-agent"],
     });
 
@@ -192,58 +192,60 @@ exports.downloadMtoCsv = async (req, res) => {
     }
 
     const project = await Project.findById(projectId);
-    console.log(project);
-
     if (!project) {
       return responseHandler(res, 404, "Project not found");
     }
 
     const MtoDynamic = await dynamicCollection(project.collectionName);
 
-    const mtos = await MtoDynamic.find();
-
-    if (!mtos || mtos.length === 0) {
+    const totalCount = await MtoDynamic.countDocuments();
+    if (totalCount === 0) {
       return responseHandler(res, 404, "No MTO data found");
     }
 
-    let fields = [];
-    project.headers.forEach((header) => {
-      fields.push(snakeCase(header));
-    });
+    const fields = project.headers.map((header) => snakeCase(header));
 
-    const json2csvParser = new Parser({ fields });
-    const csv = json2csvParser.parse(mtos);
+    res.header("Content-Type", "text/csv");
+    res.attachment("mto_data.csv");
 
-    const downloadsDir = "./downloads";
-    if (!fs.existsSync(downloadsDir)) {
-      fs.mkdirSync(downloadsDir);
+    res.write(fields.join(",") + "\n");
+
+    const BATCH_SIZE = 10000;
+    let processedCount = 0;
+
+    while (processedCount < totalCount) {
+      const batch = await MtoDynamic.find()
+        .skip(processedCount)
+        .limit(BATCH_SIZE)
+        .lean();
+
+      batch.forEach((doc) => {
+        const row = fields.map((field) => {
+          const value = doc[field];
+          return value !== undefined && value !== null ? `"${value}"` : "";
+        });
+        res.write(row.join(",") + "\n");
+      });
+
+      processedCount += batch.length;
+      console.log(`Processed ${processedCount}/${totalCount} records`);
     }
 
-    const filePath = `${downloadsDir}/mto_data_${Date.now()}.csv`;
-    fs.writeFileSync(filePath, csv);
-
-    res.download(filePath, "mto_data.csv", (err) => {
-      if (err) {
-        console.error("File Download Error:", err.message);
-        return responseHandler(res, 500, `File Download Error: ${err.message}`);
-      }
-
-      fs.unlinkSync(filePath);
-    });
+    return res.end();
   } catch (error) {
-    console.error("Internal Server Error:", error.message);
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
 
+
 exports.getSummery = async (req, res) => {
   try {
     const { projectId } = req.params;
-    const { page = 1, limit = 10 } = req.query;
+    const { page = 1, limit = 10, download = false } = req.query;
 
     const skipCount = (page - 1) * limit;
 
-    let { selectedHeaders = [], download = false} = req.query;
+    let { selectedHeaders = [] } = req.query;
 
     if (!projectId) {
       return responseHandler(res, 400, "Project ID is required");
@@ -262,7 +264,7 @@ exports.getSummery = async (req, res) => {
       return responseHandler(res, 404, "No headers found for the project");
     }
 
-    if (selectedHeaders.length == 0) {
+    if (selectedHeaders.length === 0) {
       selectedHeaders = project.selectedHeaders;
     }
 
@@ -331,12 +333,33 @@ exports.getSummery = async (req, res) => {
     }
 
     if (download === "true") {
-      const json2csvParser = new Parser();
-      const csv = json2csvParser.parse(mtoData);
-
       res.header("Content-Type", "text/csv");
       res.attachment(`${project.project}_mto_data.csv`);
-      return res.send(csv);
+
+      res.write(selectedHeadersSnakeCase.join(",") + "\n"); 
+
+      const BATCH_SIZE = 10000;
+      let processedCount = 0;
+
+      while (processedCount < totalCount) {
+        const batch = await MtoDynamic.find({}, projection)
+          .skip(processedCount)
+          .limit(BATCH_SIZE)
+          .lean();
+
+        batch.forEach((doc) => {
+          const row = selectedHeadersSnakeCase.map((field) => {
+            const value = doc[field];
+            return value !== undefined && value !== null ? `"${value}"` : "";
+          });
+          res.write(row.join(",") + "\n");
+        });
+
+        processedCount += batch.length;
+        console.log(`Processed ${processedCount}/${totalCount} records`);
+      }
+
+      return res.end();
     }
 
     return responseHandler(
@@ -346,7 +369,6 @@ exports.getSummery = async (req, res) => {
       responsePayload
     );
   } catch (error) {
-    console.error("Error fetching headers and MTO data:", error.message);
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
@@ -442,7 +464,7 @@ exports.bulkUpdate = async (req, res) => {
             [project.issuedQty]: newRecord[project.issuedQty],
             [project.dateName]: newRecord[project.dateName],
           },
-          host: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
+          host: req.headers["x-forwarded-for"] || req.connection.remoteAddress,
           agent: req.headers["user-agent"],
         });
 
