@@ -417,19 +417,7 @@ exports.getDashboardData = async (req, res) => {
     const filter = isSuperAdmin ? {} : { project: { $in: req.user.project } };
     const alertCount = await Alert.countDocuments(filter);
 
-    const recentAlerts = await Alert.find(adminFilter)
-      .populate("project", "project code")
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .lean();
 
-    const alertData = recentAlerts.map((data) => {
-      return {
-        ...data,
-        projectName: data?.project?.project || "",
-        projectCode: data?.project?.code || "",
-      };
-    });
 
     const startOfWeek = new Date();
     startOfWeek.setDate(startOfWeek.getDate() - 6);
@@ -469,7 +457,6 @@ exports.getDashboardData = async (req, res) => {
       changesCount,
       alertCount,
       recentActivity,
-      alertData,
       chartData
     };
 
