@@ -10,6 +10,7 @@ const { snakeCase } = require("lodash");
 const { dynamicCollection } = require("../helpers/dynamicCollection");
 const moment = require("moment-timezone");
 const Admin = require("../models/adminModel");
+const { Transform } = require("stream");
 
 exports.getMtoById = async (req, res) => {
   try {
@@ -204,35 +205,60 @@ exports.downloadMtoCsv = async (req, res) => {
     }
 
     const fields = project.headers.map((header) => snakeCase(header));
-
     res.header("Content-Type", "text/csv");
-    res.attachment("mto_data.csv");
-
+    res.attachment(`${project.project}_mto_data.csv`);
     res.write(fields.join(",") + "\n");
 
-    const BATCH_SIZE = 10000;
-    let processedCount = 0;
-
-    while (processedCount < totalCount) {
-      const batch = await MtoDynamic.find()
-        .skip(processedCount)
-        .limit(BATCH_SIZE)
-        .lean();
-
-      batch.forEach((doc) => {
+    const transformStream = new Transform({
+      objectMode: true,
+      transform(doc, encoding, callback) {
         const row = fields.map((field) => {
           const value = doc[field];
           return value !== undefined && value !== null ? `"${value}"` : "";
         });
-        res.write(row.join(",") + "\n");
-      });
+        callback(null, row.join(",") + "\n");
+      },
+    });
 
-      processedCount += batch.length;
+    const handleError = (error) => {
+      console.error("Stream error:", error);
+      transformStream.destroy();
+      if (!res.headersSent) {
+        responseHandler(res, 500, `Internal Server Error: ${error.message}`);
+      }
+    };
+
+    transformStream.on("error", handleError);
+
+    let processedCount = 0;
+    const progressInterval = setInterval(() => {
       console.log(`Processed ${processedCount}/${totalCount} records`);
-    }
+    }, 5000);
 
-    return res.end();
+    const cursor = MtoDynamic.find().lean().cursor({ batchSize: 1000 });
+
+    cursor.on("data", (doc) => {
+      processedCount++;
+      transformStream.write(doc);
+    });
+
+    cursor.on("end", () => {
+      transformStream.end();
+      clearInterval(progressInterval);
+      console.log("Processing completed");
+    });
+
+    cursor.on("error", handleError);
+
+    transformStream
+      .pipe(res)
+      .on("finish", () => {
+        clearInterval(progressInterval);
+        console.log("Download completed successfully");
+      })
+      .on("error", handleError);
   } catch (error) {
+    console.error("Error downloading MTO data:", error.message);
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
@@ -591,7 +617,7 @@ exports.downloadSummery = async (req, res) => {
       res.write(row.join(",") + "\n");
     });
 
-    return res.end(); 
+    return res.end();
   } catch (error) {
     console.error("Error downloading summary:", error.message);
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
