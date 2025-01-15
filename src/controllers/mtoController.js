@@ -210,7 +210,7 @@ exports.downloadMtoCsv = async (req, res) => {
     if (!fs.existsSync(folderPath)) {
       fs.mkdirSync(folderPath, { recursive: true });
     }
-    const fileName = `${project.project}_mto_data_${Date.now()}.csv.gz`;
+    const fileName = `${project.collectionName}_mto_data_${Date.now()}.csv.gz`;
     const filePath = path.join(folderPath, fileName);
 
     const gzip = zlib.createGzip({ level: 6, memLevel: 8 });
