@@ -1,6 +1,5 @@
 const responseHandler = require("../helpers/responseHandler");
-const validations = require("../validations");
-const { Parser } = require("json2csv");
+const path = require("path");
 const fs = require("fs");
 const Log = require("../models/logModel");
 const Alert = require("../models/alertModel");
@@ -11,6 +10,8 @@ const { dynamicCollection } = require("../helpers/dynamicCollection");
 const moment = require("moment-timezone");
 const Admin = require("../models/adminModel");
 const { Transform } = require("stream");
+const zlib = require('zlib');
+
 
 exports.getMtoById = async (req, res) => {
   try {
@@ -183,7 +184,6 @@ exports.updateMto = async (req, res) => {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
-
 exports.downloadMtoCsv = async (req, res) => {
   try {
     const { projectId } = req.params;
@@ -205,9 +205,15 @@ exports.downloadMtoCsv = async (req, res) => {
     }
 
     const fields = project.headers.map((header) => snakeCase(header));
-    res.header("Content-Type", "text/csv");
-    res.attachment(`${project.project}_mto_data.csv`);
-    res.write(fields.join(",") + "\n");
+
+    const folderPath = path.join(__dirname, "../excel_report");
+    if (!fs.existsSync(folderPath)) {
+      fs.mkdirSync(folderPath, { recursive: true });
+    }
+    const fileName = `${project.project}_mto_data_${Date.now()}.csv.gz`;
+    const filePath = path.join(folderPath, fileName);
+
+    const gzip = zlib.createGzip({ level: 6, memLevel: 8 });
 
     const transformStream = new Transform({
       objectMode: true,
@@ -217,18 +223,8 @@ exports.downloadMtoCsv = async (req, res) => {
           return value !== undefined && value !== null ? `"${value}"` : "";
         });
         callback(null, row.join(",") + "\n");
-      },
-    });
-
-    const handleError = (error) => {
-      console.error("Stream error:", error);
-      transformStream.destroy();
-      if (!res.headersSent) {
-        responseHandler(res, 500, `Internal Server Error: ${error.message}`);
       }
-    };
-
-    transformStream.on("error", handleError);
+    });
 
     let processedCount = 0;
     const progressInterval = setInterval(() => {
@@ -236,6 +232,8 @@ exports.downloadMtoCsv = async (req, res) => {
     }, 5000);
 
     const cursor = MtoDynamic.find().lean().cursor({ batchSize: 1000 });
+
+    const writeStream = fs.createWriteStream(filePath);
 
     cursor.on("data", (doc) => {
       processedCount++;
@@ -248,20 +246,43 @@ exports.downloadMtoCsv = async (req, res) => {
       console.log("Processing completed");
     });
 
-    cursor.on("error", handleError);
+    cursor.on("error", (error) => {
+      console.error("Stream error:", error);
+      transformStream.destroy();
+      gzip.destroy();
+      writeStream.destroy();
+      return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
+    });
 
     transformStream
-      .pipe(res)
+      .pipe(gzip)
+      .pipe(writeStream)
       .on("finish", () => {
         clearInterval(progressInterval);
-        console.log("Download completed successfully");
+        console.log("File saved successfully");
+
+        const fileUrl = `${req.protocol}://${req.get("host")}/excel_report/${fileName}`;
+
+        setTimeout(() => {
+          fs.unlink(filePath, (err) => {
+            if (err) console.error("Error deleting file:", err);
+            else console.log("File deleted:", filePath);
+          });
+        }, 60 * 60 * 1000);
+
+        return responseHandler(res, 200, "File created successfully", { fileUrl });
       })
-      .on("error", handleError);
+      .on("error", (error) => {
+        console.error("File write error:", error);
+        return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
+      });
   } catch (error) {
     console.error("Error downloading MTO data:", error.message);
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
+
+
 
 exports.getSummery = async (req, res) => {
   try {
