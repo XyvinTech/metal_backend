@@ -204,8 +204,10 @@ exports.downloadMtoCsv = async (req, res) => {
       return responseHandler(res, 404, "No MTO data found");
     }
 
+    // Convert headers to snake_case format
     const fields = project.headers.map((header) => snakeCase(header));
 
+    // Define file paths
     const folderPath = path.join(__dirname, "../excel_report");
     if (!fs.existsSync(folderPath)) {
       fs.mkdirSync(folderPath, { recursive: true });
@@ -213,8 +215,10 @@ exports.downloadMtoCsv = async (req, res) => {
     const fileName = `${project.collectionName}_mto_data_${Date.now()}.csv.gz`;
     const filePath = path.join(folderPath, fileName);
 
+    // Create a gzip compression stream
     const gzip = zlib.createGzip({ level: 6, memLevel: 8 });
 
+    // Transform stream to convert documents into CSV rows
     const transformStream = new Transform({
       objectMode: true,
       transform(doc, encoding, callback) {
@@ -227,23 +231,22 @@ exports.downloadMtoCsv = async (req, res) => {
     });
 
     let processedCount = 0;
-    let headerWritten = false;
 
+    // Log progress every 5 seconds
     const progressInterval = setInterval(() => {
       console.log(`Processed ${processedCount}/${totalCount} records`);
     }, 5000);
 
+    // Set up a cursor for batch processing
     const cursor = MtoDynamic.find().lean().cursor({ batchSize: 1000 });
 
     const writeStream = fs.createWriteStream(filePath);
 
-    // Handle cursor events
+    // Write headers to the CSV file before any data rows
+    writeStream.write(fields.join(",") + "\n");
+
+    // Process each document in the cursor and write it to the file
     cursor.on("data", (doc) => {
-      if (!headerWritten) {
-        // Write header row before the first data row
-        transformStream.write(fields.join(",") + "\n");
-        headerWritten = true;
-      }
       processedCount++;
       transformStream.write(doc);
     });
@@ -262,6 +265,7 @@ exports.downloadMtoCsv = async (req, res) => {
       return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
     });
 
+    // Pipe the transform stream to gzip and then to the write stream
     transformStream
       .pipe(gzip)
       .pipe(writeStream)
