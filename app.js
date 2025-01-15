@@ -27,7 +27,7 @@ app.use(express.json());
 const BASE_PATH = `/api/${API_VERSION}`;
 //* Import database connection module
 require("./src/helpers/connection");
-
+app.set("trust proxy", true);
 const uploadDir = path.join(__dirname, "src/excel_report");
 console.log("🚀 ~ uploadDir:", uploadDir)
 
