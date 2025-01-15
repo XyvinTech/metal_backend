@@ -261,7 +261,7 @@ exports.downloadMtoCsv = async (req, res) => {
         clearInterval(progressInterval);
         console.log("File saved successfully");
 
-        const fileUrl = `${req.protocol}://${req.get("host")}/excel_report/${fileName}`;
+        const fileUrl = `${req.protocol}://${req.get("host")}/images/${fileName}`;
 
         setTimeout(() => {
           fs.unlink(filePath, (err) => {
