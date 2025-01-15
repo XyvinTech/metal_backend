@@ -227,6 +227,8 @@ exports.downloadMtoCsv = async (req, res) => {
     });
 
     let processedCount = 0;
+    let headerWritten = false;
+
     const progressInterval = setInterval(() => {
       console.log(`Processed ${processedCount}/${totalCount} records`);
     }, 5000);
@@ -235,7 +237,13 @@ exports.downloadMtoCsv = async (req, res) => {
 
     const writeStream = fs.createWriteStream(filePath);
 
+    // Handle cursor events
     cursor.on("data", (doc) => {
+      if (!headerWritten) {
+        // Write header row before the first data row
+        transformStream.write(fields.join(",") + "\n");
+        headerWritten = true;
+      }
       processedCount++;
       transformStream.write(doc);
     });
@@ -263,6 +271,7 @@ exports.downloadMtoCsv = async (req, res) => {
 
         const fileUrl = `${req.protocol}://${req.get("host")}/images/${fileName}`;
 
+        // Schedule file deletion after 1 hour
         setTimeout(() => {
           fs.unlink(filePath, (err) => {
             if (err) console.error("Error deleting file:", err);
@@ -281,8 +290,6 @@ exports.downloadMtoCsv = async (req, res) => {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
-
-
 
 exports.getSummery = async (req, res) => {
   try {
