@@ -204,7 +204,9 @@ exports.downloadMtoCsv = async (req, res) => {
       return responseHandler(res, 404, "No MTO data found");
     }
 
-    const fields = project.headers.map((header) => snakeCase(header));
+    // Format headers
+    let headers = project.headers;
+    const fields = headers.map((header) => snakeCase(header));
 
     const folderPath = path.join(__dirname, "../excel_report");
     if (!fs.existsSync(folderPath)) {
@@ -214,6 +216,11 @@ exports.downloadMtoCsv = async (req, res) => {
     const filePath = path.join(folderPath, fileName);
 
     const gzip = zlib.createGzip({ level: 6, memLevel: 8 });
+    const writeStream = fs.createWriteStream(filePath);
+
+    // Write headers directly to gzip stream at the start
+    const headerRow = headers.map(header => `"${header}"`).join(',') + '\n';
+    gzip.write(headerRow);
 
     const transformStream = new Transform({
       objectMode: true,
@@ -227,7 +234,6 @@ exports.downloadMtoCsv = async (req, res) => {
     });
 
     let processedCount = 0;
-    let headerWritten = false;
 
     const progressInterval = setInterval(() => {
       console.log(`Processed ${processedCount}/${totalCount} records`);
@@ -235,15 +241,8 @@ exports.downloadMtoCsv = async (req, res) => {
 
     const cursor = MtoDynamic.find().lean().cursor({ batchSize: 1000 });
 
-    const writeStream = fs.createWriteStream(filePath);
-
     // Handle cursor events
     cursor.on("data", (doc) => {
-      if (!headerWritten) {
-        // Write header row before the first data row
-        transformStream.write(fields.join(",") + "\n");
-        headerWritten = true;
-      }
       processedCount++;
       transformStream.write(doc);
     });
