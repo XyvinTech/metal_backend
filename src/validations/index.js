@@ -41,6 +41,9 @@ exports.updateProjectSchema = Joi.object({
   description: Joi.string(),
   owner: Joi.string(),
   consultant: Joi.string(),
+  workOrder: Joi.string().required(),
+  poDate: Joi.date().required(),
+  finishedDate: Joi.date().required(),
 });
 
 exports.updateMtoSchema = Joi.object({
