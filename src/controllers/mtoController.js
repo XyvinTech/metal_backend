@@ -136,16 +136,17 @@ exports.updateMto = async (req, res) => {
         issuedQty: issuedQty,
         consumedQty: consumedQty,
         balanceQty: balanceQty,
-        issuedDate: dateName,
+        issuedDate: req.body[project.dateName],
       });
     }
 
+    
     const updatedData = {
       [project.consumedQty]: consumedQty,
       [project.issuedQty]: issuedQty,
       [project.balanceQty]: balanceQty,
       [project.balanceToIssue]: balanceToIssueQty,
-      [project.issuedDate]: req.body[project.issuedDate],
+      [project.dateName]: req.body[project.dateName],
     };
 
     if (req.user.superAdmin) {
@@ -157,7 +158,7 @@ exports.updateMto = async (req, res) => {
       [project.consumedQty]: findMto[project.consumedQty],
       [project.issuedQty]: findMto[project.issuedQty],
       [project.balanceQty]: findMto[project.balanceQty],
-      [project.issuedDate]: findMto[project.issuedDate],
+      [project.dateName]: findMto[project.dateName],
     };
 
     await Log.create({

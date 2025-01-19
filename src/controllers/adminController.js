@@ -319,78 +319,71 @@ exports.getAlerts = async (req, res) => {
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
-
 exports.downloadAlerts = async (req, res) => {
   try {
+    // Find project
     const project = await Project.findById(req.params.id);
     if (!project) {
       return responseHandler(res, 404, "Project not found");
     }
 
+    // Get MTO collection and alerts
     const MtoDynamic = await dynamicCollection(project.collectionName);
-
     const alerts = await Alert.find({ project: req.params.id })
-      .sort({ createdAt: -1, _id: 1 })
+      .sort({ createdAt: -1 })
       .populate("project", "project")
       .lean();
 
-    if (!alerts || alerts.length === 0) {
+    if (!alerts.length) {
       return responseHandler(res, 404, "No alerts found for CSV export");
     }
 
-    const mtoHeaders = project.headers.map((header) => snakeCase(header));
+    // Convert original headers to snake case for DB lookup
+    const mtoHeaders = project.headers.map(header => snakeCase(header));
 
+    // Map alert and MTO data
     const mappedData = await Promise.all(
       alerts.map(async (alert) => {
-        let mtoData = {};
+        // Get MTO data if exists
+        const mtoData = alert.mto 
+          ? await MtoDynamic.findById(alert.mto).lean() 
+          : {};
 
-        if (alert.mto) {
-          mtoData = (await MtoDynamic.findById(alert.mto).lean()) || {};
-        }
-
+        // Initialize row with project name
         const rowData = {
-          "Project Name": alert.project?.project || "",
+          "Project Name": alert.project?.project || ""
         };
 
-        mtoHeaders.forEach((header) => {
-          const originalHeader = project.headers[mtoHeaders.indexOf(header)];
-
-          if (
-            mtoData[header] &&
-            originalHeader.toLowerCase().includes("date")
-          ) {
-            rowData[originalHeader] = new Date(
-              mtoData[header]
-            ).toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "2-digit",
-              day: "2-digit",
-            });
-          } else {
-            rowData[originalHeader] = mtoData[header] || "";
-          }
+        // Add MTO fields with original headers
+        mtoHeaders.forEach((header, index) => {
+          const originalHeader = project.headers[index];
+          rowData[originalHeader] = originalHeader.toLowerCase().includes("date") && mtoData[header]
+            ? new Date(mtoData[header]).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit"
+              })
+            : mtoData[header] || "";
         });
 
         return rowData;
       })
     );
 
-    const csvFields = ["Project Name", ...project.headers];
-
+    // Generate and send CSV
     const csv = parse(mappedData, {
-      fields: csvFields,
-      header: true,
+      fields: ["Project Name", ...project.headers],
+      header: true
     });
 
     res.setHeader("Content-Type", "text/csv");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename=alerts_${
-        project.project || "export"
-      }_${Date.now()}.csv`
+      `attachment; filename=alerts_${project.project || "export"}_${Date.now()}.csv`
     );
 
     return res.status(200).send(csv);
+
   } catch (error) {
     console.error("Error generating CSV:", error);
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
