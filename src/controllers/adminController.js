@@ -11,6 +11,10 @@ const { dynamicCollection } = require("../helpers/dynamicCollection");
 const { generateRandomPassword } = require("../utils/generateRandomPassword");
 const sendMail = require("../utils/sendMail");
 const { generateOTP } = require("../utils/generateOTP");
+const xlsx = require("xlsx");
+const mongoose = require("mongoose");
+const { snakeCase } = require("lodash");
+const { parse } = require("json2csv");
 
 exports.loginAdmin = async (req, res) => {
   try {
@@ -323,10 +327,8 @@ exports.downloadAlerts = async (req, res) => {
       return responseHandler(res, 404, "Project not found");
     }
 
-    // Get the dynamic collection for MTO
     const MtoDynamic = await dynamicCollection(project.collectionName);
 
-    // Fetch alerts for the given project
     const alerts = await Alert.find({ project: req.params.id })
       .sort({ createdAt: -1, _id: 1 })
       .populate("project", "project")
@@ -336,47 +338,85 @@ exports.downloadAlerts = async (req, res) => {
       return responseHandler(res, 404, "No alerts found for CSV export");
     }
 
-    // Retrieve MTO data dynamically and map the alerts
+    // Get project headers for MTO fields
+    const mtoHeaders = project.headers.map((header) => snakeCase(header));
+
+    // Prepare data for CSV
     const mappedData = await Promise.all(
       alerts.map(async (alert) => {
-        let mtoIdentCode = "";
-        let areaLineSheetIdent = "";
+        let mtoData = {};
 
         if (alert.mto) {
-          const mtoData = await MtoDynamic.findById(alert.mto).lean();
-          mtoIdentCode = mtoData?.identCode || "";
-          areaLineSheetIdent = mtoData?.areaLineSheetIdent || "";
+          mtoData = (await MtoDynamic.findById(alert.mto).lean()) || {};
         }
 
-        return {
-          id: alert._id || "",
-          projectName: alert.project?.project || "",
-          issuedQtyAss: alert.issuedQty || "",
-          consumedQty: alert.consumedQty || "",
-          issuedDate: alert.issuedDate || "",
+        // Format date to a readable form
+        const formattedDate = alert.issuedDate
+          ? new Date(alert.issuedDate).toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+            })
+          : "";
+
+        // Start with alert data
+        const rowData = {
+          "Project Name": alert.project?.project || "",
+          "Primary Key": alert.pk || "",
+          "Issued Quantity": alert.issuedQty,
+          "Consumed Quantity": alert.consumedQty,
+          "Issued Date": formattedDate,
         };
+
+        // Add all MTO fields with their original headers
+        mtoHeaders.forEach((header) => {
+          const originalHeader = project.headers[mtoHeaders.indexOf(header)];
+          // Handle date fields
+          if (
+            mtoData[header] &&
+            originalHeader.toLowerCase().includes("date")
+          ) {
+            rowData[originalHeader] = new Date(
+              mtoData[header]
+            ).toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+            });
+          } else {
+            rowData[originalHeader] = mtoData[header] || "";
+          }
+        });
+
+        return rowData;
       })
     );
 
-    const csvStringifier = createObjectCsvStringifier({
-      header: [
-        { id: "projectName", title: "Project" },
-        { id: "issuedQtyAss", title: "Issued Qty Ass" },
-        { id: "consumedQty", title: "Consumed Qty" },
-        { id: "issuedDate", title: "Issued Date" },
-      ],
+    const csvFields = [
+      "Project Name",
+      "Primary Key",
+      "Issued Quantity",
+      "Consumed Quantity",
+      "Issued Date",
+      ...project.headers,
+    ];
+
+    const csv = parse(mappedData, {
+      fields: csvFields,
+      header: true,
     });
 
-    const csvData =
-      csvStringifier.getHeaderString() +
-      csvStringifier.stringifyRecords(mappedData);
-
     res.setHeader("Content-Type", "text/csv");
-    res.setHeader("Content-Disposition", 'attachment; filename="alerts.csv"');
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=alerts_${
+        project.project || "export"
+      }_${Date.now()}.csv`
+    );
 
-    return res.status(200).send(csvData);
+    return res.status(200).send(csv);
   } catch (error) {
-    console.error("Error generating CSV:", error.message);
+    console.error("Error generating CSV:", error);
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
   }
 };
@@ -417,8 +457,6 @@ exports.getDashboardData = async (req, res) => {
     const filter = isSuperAdmin ? {} : { project: { $in: req.user.project } };
     const alertCount = await Alert.countDocuments(filter);
 
-
-
     const startOfWeek = new Date();
     startOfWeek.setDate(startOfWeek.getDate() - 6);
     startOfWeek.setHours(0, 0, 0, 0);
@@ -457,7 +495,7 @@ exports.getDashboardData = async (req, res) => {
       changesCount,
       alertCount,
       recentActivity,
-      chartData
+      chartData,
     };
 
     res.status(200).json({

@@ -10,8 +10,7 @@ const { dynamicCollection } = require("../helpers/dynamicCollection");
 const moment = require("moment-timezone");
 const Admin = require("../models/adminModel");
 const { Transform } = require("stream");
-const zlib = require('zlib');
-
+const zlib = require("zlib");
 
 exports.getMtoById = async (req, res) => {
   try {
@@ -124,6 +123,7 @@ exports.updateMto = async (req, res) => {
     const requiredQty = Number(findMto[project.reqQty]) || 0;
     const issuedQty = Number(req.body[project.issuedQty]) || 0;
     const consumedQty = Number(req.body[project.consumedQty]) || 0;
+    const dateName = Number(req.body[project.dateName]) || 0;
 
     const balanceToIssueQty = requiredQty - issuedQty;
     const balanceQty = issuedQty - consumedQty;
@@ -136,7 +136,7 @@ exports.updateMto = async (req, res) => {
         issuedQty: issuedQty,
         consumedQty: consumedQty,
         balanceQty: balanceQty,
-        issuedDate: req.body[project.dateName],
+        issuedDate: dateName,
       });
     }
 
@@ -145,7 +145,7 @@ exports.updateMto = async (req, res) => {
       [project.issuedQty]: issuedQty,
       [project.balanceQty]: balanceQty,
       [project.balanceToIssue]: balanceToIssueQty,
-      [project.dateName]: req.body[project.dateName],
+      [project.issuedDate]: req.body[project.issuedDate],
     };
 
     if (req.user.superAdmin) {
@@ -157,7 +157,7 @@ exports.updateMto = async (req, res) => {
       [project.consumedQty]: findMto[project.consumedQty],
       [project.issuedQty]: findMto[project.issuedQty],
       [project.balanceQty]: findMto[project.balanceQty],
-      [project.dateName]: findMto[project.dateName],
+      [project.issuedDate]: findMto[project.issuedDate],
     };
 
     await Log.create({
@@ -219,7 +219,7 @@ exports.downloadMtoCsv = async (req, res) => {
     const writeStream = fs.createWriteStream(filePath);
 
     // Write headers directly to gzip stream at the start
-    const headerRow = headers.map(header => `"${header}"`).join(',') + '\n';
+    const headerRow = headers.map((header) => `"${header}"`).join(",") + "\n";
     gzip.write(headerRow);
 
     const transformStream = new Transform({
@@ -230,7 +230,7 @@ exports.downloadMtoCsv = async (req, res) => {
           return value !== undefined && value !== null ? `"${value}"` : "";
         });
         callback(null, row.join(",") + "\n");
-      }
+      },
     });
 
     let processedCount = 0;
@@ -241,7 +241,6 @@ exports.downloadMtoCsv = async (req, res) => {
 
     const cursor = MtoDynamic.find().lean().cursor({ batchSize: 1000 });
 
-    // Handle cursor events
     cursor.on("data", (doc) => {
       processedCount++;
       transformStream.write(doc);
@@ -258,7 +257,11 @@ exports.downloadMtoCsv = async (req, res) => {
       transformStream.destroy();
       gzip.destroy();
       writeStream.destroy();
-      return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
+      return responseHandler(
+        res,
+        500,
+        `Internal Server Error: ${error.message}`
+      );
     });
 
     transformStream
@@ -268,7 +271,9 @@ exports.downloadMtoCsv = async (req, res) => {
         clearInterval(progressInterval);
         console.log("File saved successfully");
 
-        const fileUrl = `${req.protocol}://${req.get("host")}/images/${fileName}`;
+        const fileUrl = `${req.protocol}://${req.get(
+          "host"
+        )}/images/${fileName}`;
 
         setTimeout(() => {
           fs.unlink(filePath, (err) => {
@@ -277,11 +282,17 @@ exports.downloadMtoCsv = async (req, res) => {
           });
         }, 60 * 60 * 1000);
 
-        return responseHandler(res, 200, "File created successfully", { fileUrl });
+        return responseHandler(res, 200, "File created successfully", {
+          fileUrl,
+        });
       })
       .on("error", (error) => {
         console.error("File write error:", error);
-        return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
+        return responseHandler(
+          res,
+          500,
+          `Internal Server Error: ${error.message}`
+        );
       });
   } catch (error) {
     console.error("Error downloading MTO data:", error.message);
