@@ -338,10 +338,8 @@ exports.downloadAlerts = async (req, res) => {
       return responseHandler(res, 404, "No alerts found for CSV export");
     }
 
-    // Get project headers for MTO fields
     const mtoHeaders = project.headers.map((header) => snakeCase(header));
 
-    // Prepare data for CSV
     const mappedData = await Promise.all(
       alerts.map(async (alert) => {
         let mtoData = {};
@@ -350,28 +348,13 @@ exports.downloadAlerts = async (req, res) => {
           mtoData = (await MtoDynamic.findById(alert.mto).lean()) || {};
         }
 
-        // Format date to a readable form
-        const formattedDate = alert.issuedDate
-          ? new Date(alert.issuedDate).toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "2-digit",
-              day: "2-digit",
-            })
-          : "";
-
-        // Start with alert data
         const rowData = {
           "Project Name": alert.project?.project || "",
-          "Primary Key": alert.pk || "",
-          "Issued Quantity": alert.issuedQty,
-          "Consumed Quantity": alert.consumedQty,
-          "Issued Date": formattedDate,
         };
 
-        // Add all MTO fields with their original headers
         mtoHeaders.forEach((header) => {
           const originalHeader = project.headers[mtoHeaders.indexOf(header)];
-          // Handle date fields
+
           if (
             mtoData[header] &&
             originalHeader.toLowerCase().includes("date")
@@ -392,14 +375,7 @@ exports.downloadAlerts = async (req, res) => {
       })
     );
 
-    const csvFields = [
-      "Project Name",
-      "Primary Key",
-      "Issued Quantity",
-      "Consumed Quantity",
-      "Issued Date",
-      ...project.headers,
-    ];
+    const csvFields = ["Project Name", ...project.headers];
 
     const csv = parse(mappedData, {
       fields: csvFields,
