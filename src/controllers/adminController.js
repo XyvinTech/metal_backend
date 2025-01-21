@@ -406,7 +406,9 @@ exports.getDashboardData = async (req, res) => {
       projectCount = await Project.countDocuments();
     }
 
-    const adminCount = await Admin.countDocuments();
+    const adminCount = await Admin.countDocuments({
+      _id: { $nin: ["6762be51c70a7ef24c316410"] },
+    });
 
     const recentLogs = await Log.find(adminFilter)
       .populate("admin", "name email")
