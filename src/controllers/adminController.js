@@ -131,8 +131,9 @@ exports.getAllAdmins = async (req, res) => {
     const { pageNo = 1, status, limit = 10 } = req.query;
     const skipCount = 10 * (pageNo - 1);
     const filter = {
-      _id: { $ne: "6762be51c70a7ef24c316410", $ne: req.userId },
+      _id: { $nin: ["6762be51c70a7ef24c316410", req.userId] },
     };
+
     const totalCount = await Admin.countDocuments(filter);
     const data = await Admin.find(filter)
       .skip(skipCount)
@@ -339,31 +340,32 @@ exports.downloadAlerts = async (req, res) => {
     }
 
     // Convert original headers to snake case for DB lookup
-    const mtoHeaders = project.headers.map(header => snakeCase(header));
+    const mtoHeaders = project.headers.map((header) => snakeCase(header));
 
     // Map alert and MTO data
     const mappedData = await Promise.all(
       alerts.map(async (alert) => {
         // Get MTO data if exists
-        const mtoData = alert.mto 
-          ? await MtoDynamic.findById(alert.mto).lean() 
+        const mtoData = alert.mto
+          ? await MtoDynamic.findById(alert.mto).lean()
           : {};
 
         // Initialize row with project name
         const rowData = {
-          "Project Name": alert.project?.project || ""
+          "Project Name": alert.project?.project || "",
         };
 
         // Add MTO fields with original headers
         mtoHeaders.forEach((header, index) => {
           const originalHeader = project.headers[index];
-          rowData[originalHeader] = originalHeader.toLowerCase().includes("date") && mtoData[header]
-            ? new Date(mtoData[header]).toLocaleDateString("en-US", {
-                year: "numeric",
-                month: "2-digit",
-                day: "2-digit"
-              })
-            : mtoData[header] || "";
+          rowData[originalHeader] =
+            originalHeader.toLowerCase().includes("date") && mtoData[header]
+              ? new Date(mtoData[header]).toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "2-digit",
+                  day: "2-digit",
+                })
+              : mtoData[header] || "";
         });
 
         return rowData;
@@ -373,17 +375,18 @@ exports.downloadAlerts = async (req, res) => {
     // Generate and send CSV
     const csv = parse(mappedData, {
       fields: ["Project Name", ...project.headers],
-      header: true
+      header: true,
     });
 
     res.setHeader("Content-Type", "text/csv");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename=alerts_${project.project || "export"}_${Date.now()}.csv`
+      `attachment; filename=alerts_${
+        project.project || "export"
+      }_${Date.now()}.csv`
     );
 
     return res.status(200).send(csv);
-
   } catch (error) {
     console.error("Error generating CSV:", error);
     return responseHandler(res, 500, `Internal Server Error: ${error.message}`);
