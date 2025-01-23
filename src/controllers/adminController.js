@@ -79,21 +79,20 @@ exports.createAdmin = async (req, res) => {
     const hashedPassword = await hashPassword(generatedPassword);
     req.body.password = hashedPassword;
 
-    const data = {
-      to: req.body.email,
-      subject: "Admin Registration Notification",
-      text: `Hello, ${req.body.name}. 
-      You have been registered as an admin on the platform. 
-      Please use the following credentials to log in: Email: ${req.body.email} Password: ${generatedPassword} 
-      Thank you for joining us! 
-      Best regards, The Admin Team`,
-    };
-
-    await sendMail(data);
-
     const newAdmin = await Admin.create(req.body);
 
     if (newAdmin) {
+      const data = {
+        to: req.body.email,
+        subject: "Admin Registration Notification",
+        text: `Hello, ${req.body.name}. 
+        You have been registered as an admin on the platform. 
+        Please use the following credentials to log in: Email: ${req.body.email} Password: ${generatedPassword} 
+        Thank you for joining us! 
+        Best regards, The Admin Team`,
+      };
+
+      await sendMail(data);
       return responseHandler(
         res,
         201,
