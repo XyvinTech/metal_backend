@@ -237,7 +237,7 @@ exports.getAllLogs = async (req, res) => {
     const adminId = req.userId;
     const isSuperAdmin = req.isSuperAdmin;
 
-    let filter = { _id: { $ne: "66cef136282563d7bb086e30" } };
+    let filter = {};
 
     if (!isSuperAdmin) {
       filter.admin = adminId;
