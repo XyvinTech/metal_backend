@@ -235,7 +235,7 @@ exports.getAllLogs = async (req, res) => {
     const skipCount = limit * (pageNo - 1);
 
     const adminId = req.userId;
-    const isSuperAdmin = req.isSuperAdmin;
+    const isSuperAdmin = req.user.superAdmin;
 
     let filter = {};
 
