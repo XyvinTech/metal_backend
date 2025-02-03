@@ -247,7 +247,7 @@ exports.getAllLogs = async (req, res) => {
 
     const data = await Log.find(filter)
       .populate("admin", "name email")
-      .populate("project", "project")
+      .populate("project", "project pk ")
       .skip(skipCount)
       .limit(Number(limit))
       .sort({ createdAt: -1, _id: 1 })
@@ -258,6 +258,7 @@ exports.getAllLogs = async (req, res) => {
         ...logs,
         adminName: logs?.admin?.name || "",
         projectName: logs?.project?.project || "Unknown/Deleted",
+        primaryKey: logs?.project?.pk 
       };
     });
 
