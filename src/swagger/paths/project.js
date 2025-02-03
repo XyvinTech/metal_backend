@@ -50,6 +50,9 @@
  *               consumedQty:
  *                 type: string
  *                 description: Consultant for the project (required if creating a new project).
+ *               transOtherQty:
+ *                 type: string
+ *                 description: Consultant for the project (required if creating a new project).
  *               dateName:
  *                 type: string
  *                 description: Consultant for the project (required if creating a new project).

@@ -26,6 +26,7 @@ exports.createProjectSchema = Joi.object({
   pk: Joi.string().required(),
   issuedQty: Joi.string().required(),
   consumedQty: Joi.string().required(),
+  transOtherQty: Joi.string().required(),
   dateName: Joi.string().required(),
   workOrder: Joi.string().required(),
   poDate: Joi.date().required(),
