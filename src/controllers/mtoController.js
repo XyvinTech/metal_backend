@@ -72,6 +72,7 @@ exports.getMtoById = async (req, res) => {
     let editableHeaders = [
       project.issuedQty,
       project.consumedQty,
+      project.transOtherQty,
       project.dateName,
     ];
 
@@ -79,6 +80,7 @@ exports.getMtoById = async (req, res) => {
       editableHeaders = [
         project.issuedQty,
         project.consumedQty,
+        project.transOtherQty,
         project.reqQty,
         project.dateName,
       ];
@@ -155,6 +157,7 @@ exports.updateMto = async (req, res) => {
     if (req.user.superAdmin) {
       updatedData[project.reqQty] =
         Number(req.body[project.reqQty]) || requiredQty;
+        
     }
 
     const oldPayload = {
