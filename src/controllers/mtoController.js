@@ -123,10 +123,11 @@ exports.updateMto = async (req, res) => {
     const requiredQty = Number(findMto[project.reqQty]) || 0;
     const issuedQty = Number(req.body[project.issuedQty]) || 0;
     const consumedQty = Number(req.body[project.consumedQty]) || 0;
+    const transOtherQty = Number(req.body[project.transOtherQty]) || 0;
     const dateName = Number(req.body[project.dateName]) || 0;
 
     const balanceToIssueQty = requiredQty - issuedQty;
-    const balanceQty = issuedQty - consumedQty;
+    const balanceQty = issuedQty - consumedQty -transOtherQty;
 
     if (balanceQty < 0 || balanceToIssueQty < 0) {
       await Alert.create({
@@ -135,6 +136,7 @@ exports.updateMto = async (req, res) => {
         mto: findMto._id,
         issuedQty: issuedQty,
         consumedQty: consumedQty,
+        transOtherQty: transOtherQty,
         balanceQty: balanceQty,
         issuedDate: req.body[project.dateName],
       });
@@ -144,6 +146,7 @@ exports.updateMto = async (req, res) => {
     const updatedData = {
       [project.consumedQty]: consumedQty,
       [project.issuedQty]: issuedQty,
+      [project.transOtherQty]: transOtherQty,
       [project.balanceQty]: balanceQty,
       [project.balanceToIssue]: balanceToIssueQty,
       [project.dateName]: req.body[project.dateName],
@@ -157,6 +160,7 @@ exports.updateMto = async (req, res) => {
     const oldPayload = {
       [project.consumedQty]: findMto[project.consumedQty],
       [project.issuedQty]: findMto[project.issuedQty],
+      [project.transOtherQty]: findMto[project.transOtherQty],
       [project.balanceQty]: findMto[project.balanceQty],
       [project.dateName]: findMto[project.dateName],
     };
