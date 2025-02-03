@@ -13,6 +13,7 @@ const alertSchema = mongoose.Schema(
     pk: { type: String },
     issuedQty: { type: Number },
     consumedQty: { type: Number },
+    transOtherQty: { type: Number },
     issuedDate: { type: Date }
   },
   {
