@@ -151,7 +151,7 @@ exports.updateMto = async (req, res) => {
       [project.balanceQty]: balanceQty,
       [project.balanceToIssue]: balanceToIssueQty,
       [project.dateName]: req.body[project.dateName],
-      [project.pk]: req.body[project.pk],
+
     };
 
     if (req.user.superAdmin) {
@@ -164,6 +164,7 @@ exports.updateMto = async (req, res) => {
       [project.issuedQty]: findMto[project.issuedQty],
       [project.transOtherQty]: findMto[project.transOtherQty],
       [project.balanceQty]: findMto[project.balanceQty],
+      [project.balanceToIssue]: findMto[project.balanceToIssue],
       [project.dateName]: findMto[project.dateName],
     };
 
