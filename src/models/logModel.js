@@ -22,6 +22,7 @@ const logSchema = mongoose.Schema(
       ref: "Project",
       required: true,
     },
+    pk: { type: String },
   },
   {
     timestamps: true,

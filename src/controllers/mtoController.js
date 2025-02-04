@@ -129,7 +129,7 @@ exports.updateMto = async (req, res) => {
     const dateName = Number(req.body[project.dateName]) || 0;
 
     const balanceToIssueQty = requiredQty - issuedQty;
-    const balanceQty = issuedQty - consumedQty -transOtherQty;
+    const balanceQty = issuedQty - consumedQty - transOtherQty;
 
     if (balanceQty < 0 || balanceToIssueQty < 0) {
       await Alert.create({
@@ -144,7 +144,6 @@ exports.updateMto = async (req, res) => {
       });
     }
 
-    
     const updatedData = {
       [project.consumedQty]: consumedQty,
       [project.issuedQty]: issuedQty,
@@ -152,12 +151,12 @@ exports.updateMto = async (req, res) => {
       [project.balanceQty]: balanceQty,
       [project.balanceToIssue]: balanceToIssueQty,
       [project.dateName]: req.body[project.dateName],
+      [project.pk]: req.body[project.pk],
     };
 
     if (req.user.superAdmin) {
       updatedData[project.reqQty] =
         Number(req.body[project.reqQty]) || requiredQty;
-        
     }
 
     const oldPayload = {
@@ -176,6 +175,7 @@ exports.updateMto = async (req, res) => {
       newPayload: updatedData,
       host: req.headers["x-forwarded-for"] || req.connection.remoteAddress,
       agent: req.headers["user-agent"],
+      pk: findMto[project.pk],
     });
 
     const mto = await MtoDynamic.findByIdAndUpdate(req.params.id, updatedData, {
@@ -213,7 +213,6 @@ exports.downloadMtoCsv = async (req, res) => {
       return responseHandler(res, 404, "No MTO data found");
     }
 
-    // Format headers
     let headers = project.headers;
     const fields = headers.map((header) => snakeCase(header));
 
@@ -227,7 +226,6 @@ exports.downloadMtoCsv = async (req, res) => {
     const gzip = zlib.createGzip({ level: 6, memLevel: 8 });
     const writeStream = fs.createWriteStream(filePath);
 
-    // Write headers directly to gzip stream at the start
     const headerRow = headers.map((header) => `"${header}"`).join(",") + "\n";
     gzip.write(headerRow);
 

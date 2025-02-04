@@ -258,7 +258,6 @@ exports.getAllLogs = async (req, res) => {
         ...logs,
         adminName: logs?.admin?.name || "",
         projectName: logs?.project?.project || "Unknown/Deleted",
-        primaryKey: logs?.project?.pk 
       };
     });
 
