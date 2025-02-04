@@ -257,7 +257,8 @@ exports.getAllLogs = async (req, res) => {
       return {
         ...logs,
         adminName: logs?.admin?.name || "",
-        projectName: logs?.project?.project || "Unknown/Deleted",
+        projectName: logs?.project?.project,
+        pknName: logs?.project?.pk,
       };
     });
 
